@@ -45,6 +45,90 @@ CREATE TABLE IF NOT EXISTS patches (
 );
 
 -- ============================================================
+-- MATCH HISTORY (captured from LCU)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS matches (
+    game_id         TEXT PRIMARY KEY,
+    champion_id     INTEGER NOT NULL,
+    champion_key    TEXT NOT NULL,
+    game_mode       TEXT NOT NULL,          -- e.g., "CHERRY", "CLASSIC"
+    queue_id        INTEGER,
+    map_id          INTEGER,
+    win             BOOLEAN NOT NULL,
+    placement       INTEGER,               -- 1-4 in Arena
+    duration_sec    INTEGER,
+    kills           INTEGER,
+    deaths          INTEGER,
+    assists         INTEGER,
+    match_timestamp TIMESTAMP,
+    patch_version   TEXT,
+    raw_json        TEXT,                   -- full match detail JSON
+    FOREIGN KEY (champion_id) REFERENCES champions(id)
+);
+
+CREATE TABLE IF NOT EXISTS match_participants (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_id         TEXT NOT NULL,
+    puuid           TEXT,
+    summoner_name   TEXT,
+    champion_id     INTEGER NOT NULL,
+    champion_key    TEXT NOT NULL,
+    placement       INTEGER,
+    win             BOOLEAN,
+    FOREIGN KEY (game_id) REFERENCES matches(game_id),
+    FOREIGN KEY (champion_id) REFERENCES champions(id)
+);
+
+CREATE TABLE IF NOT EXISTS match_items (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_id         TEXT NOT NULL,
+    participant_id  INTEGER NOT NULL,
+    item_id         INTEGER NOT NULL,
+    slot            INTEGER,
+    FOREIGN KEY (game_id) REFERENCES matches(game_id),
+    FOREIGN KEY (item_id) REFERENCES items(id),
+    FOREIGN KEY (participant_id) REFERENCES match_participants(id)
+);
+
+CREATE TABLE IF NOT EXISTS match_augments (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_id         TEXT NOT NULL,
+    participant_id  INTEGER NOT NULL,
+    augment_id      INTEGER NOT NULL,
+    slot            INTEGER,
+    FOREIGN KEY (game_id) REFERENCES matches(game_id),
+    FOREIGN KEY (augment_id) REFERENCES augments(id),
+    FOREIGN KEY (participant_id) REFERENCES match_participants(id)
+);
+
+-- ============================================================
+-- PERSONAL STATS (computed from local match history)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS personal_item_stats (
+    champion_id INTEGER NOT NULL,
+    item_id     INTEGER NOT NULL,
+    games_played INTEGER NOT NULL DEFAULT 0,
+    wins        INTEGER NOT NULL DEFAULT 0,
+    win_rate    REAL,
+    PRIMARY KEY (champion_id, item_id),
+    FOREIGN KEY (champion_id) REFERENCES champions(id),
+    FOREIGN KEY (item_id)     REFERENCES items(id)
+);
+
+CREATE TABLE IF NOT EXISTS personal_augment_stats (
+    champion_id INTEGER NOT NULL,
+    augment_id  INTEGER NOT NULL,
+    games_played INTEGER NOT NULL DEFAULT 0,
+    wins        INTEGER NOT NULL DEFAULT 0,
+    win_rate    REAL,
+    PRIMARY KEY (champion_id, augment_id),
+    FOREIGN KEY (champion_id) REFERENCES champions(id),
+    FOREIGN KEY (augment_id)  REFERENCES augments(id)
+);
+
+-- ============================================================
 -- GLOBAL STATS (scraped from LoLalytics)
 -- ============================================================
 

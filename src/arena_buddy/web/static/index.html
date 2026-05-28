@@ -50,16 +50,68 @@
 
     <!-- Match History View -->
     <section id="tab-history" class="tab-content">
-      <div class="placeholder-message">Match history coming in Phase 2. Play some Arena games!</div>
+      <!-- Filter Bar -->
+      <div id="history-filters">
+        <select id="history-champion-filter">
+          <option value="">All Champions</option>
+        </select>
+        <select id="history-placement-filter">
+          <option value="">All Placements</option>
+          <option value="1">🏆 1st</option>
+          <option value="2">🥈 2nd</option>
+          <option value="3">🥉 3rd</option>
+          <option value="4">💀 4th</option>
+        </select>
+        <button id="history-refresh-btn" class="btn btn-sm">🔄 Refresh</button>
+      </div>
+      <!-- Match List -->
+      <div id="match-list-container">
+        <table id="match-table">
+          <thead>
+            <tr>
+              <th class="col-placement">#</th>
+              <th class="col-champion">Champion</th>
+              <th class="col-partner">Partner</th>
+              <th class="col-kda">K/D/A</th>
+              <th class="col-duration">Duration</th>
+              <th class="col-date">Date</th>
+            </tr>
+          </thead>
+          <tbody id="match-table-body">
+          </tbody>
+        </table>
+        <div id="match-empty" class="placeholder-message" style="display:none">No matches found. Play some Arena games!</div>
+      </div>
+      <!-- Pagination -->
+      <div id="match-pagination">
+        <button id="match-prev-btn" class="btn btn-sm" disabled>« Prev</button>
+        <span id="match-page-info">Page 1</span>
+        <button id="match-next-btn" class="btn btn-sm" disabled>Next »</button>
+      </div>
+      <!-- Match Detail (expanded row) -->
+      <div id="match-detail" style="display:none"></div>
+      <!-- Footer Stats -->
+      <div id="history-stats" class="history-footer">
+        <span>Total: <strong id="hist-total-matches">0</strong></span>
+        <span>Wins: <strong id="hist-wins">0</strong></span>
+        <span>Win Rate: <strong id="hist-win-rate">—</strong></span>
+        <span>Avg Place: <strong id="hist-avg-place">—</strong></span>
+      </div>
     </section>
 
     <!-- Browse View -->
     <section id="tab-browse" class="tab-content">
       <div id="champion-selector">
-        <label for="champ-select">Choose a champion:</label>
-        <select id="champ-select">
-          <option value="">-- Select --</option>
-        </select>
+        <label for="champ-search-input">Choose a champion:</label>
+        <div class="searchable-dropdown">
+          <input
+            type="text"
+            id="champ-search-input"
+            placeholder="Type to search champions..."
+            autocomplete="off"
+          />
+          <div id="champ-dropdown-list" class="dropdown-list" style="display:none"></div>
+        </div>
       </div>
       <div id="browse-content">
         <div id="browse-items-column">
@@ -80,13 +132,19 @@
     <!-- Settings View -->
     <section id="tab-settings" class="tab-content">
       <div class="settings-group">
-        <h3>Stats</h3>
+        <h3>📊 Stats</h3>
         <div id="stats-info">
           <p>Patch: <strong id="stats-patch">—</strong></p>
           <p>Last updated: <strong id="stats-last-updated">—</strong></p>
           <p>Champions covered: <strong id="stats-champ-count">—</strong></p>
         </div>
         <button id="refresh-stats-btn" class="btn">🔄 Refresh Stats</button>
+      </div>
+      <div class="settings-group">
+        <h3>🖼 Icon Cache</h3>
+        <p>Icons downloaded: <strong id="icon-cache-count">—</strong></p>
+        <p>Cache directory: <code id="icon-cache-dir">—</code></p>
+        <button id="trigger-scrape-btn" class="btn">🔃 Trigger Stats Scrape</button>
       </div>
       <div class="settings-group">
         <h3>About</h3>

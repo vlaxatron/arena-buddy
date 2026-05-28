@@ -76,7 +76,7 @@ class TestCreateSchema:
         assert cursor.fetchone() is not None
 
     def test_creates_all_tables_in_one_call(self, fresh_db):
-        """All 6 Phase 1 tables are created (excluding internal sqlite_* tables)."""
+        """All Phase 1 + Phase 2 tables are created (excluding internal sqlite_* tables)."""
         from arena_buddy.db.schema import create_all
 
         create_all(fresh_db)
@@ -88,6 +88,9 @@ class TestCreateSchema:
         expected = {
             "champions", "items", "augments", "patches",
             "global_item_stats", "global_augment_stats",
+            # Phase 2 tables
+            "matches", "match_participants", "match_items", "match_augments",
+            "personal_item_stats", "personal_augment_stats",
         }
         assert table_names == expected
 

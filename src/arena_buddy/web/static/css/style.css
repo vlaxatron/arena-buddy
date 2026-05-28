@@ -282,3 +282,282 @@ body {
   font-size: 15px;
   font-style: italic;
 }
+
+/* ================================================================
+   Match History
+   ================================================================ */
+
+/* Filter bar */
+#history-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+#history-filters select {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 6px 10px;
+  font-size: 13px;
+}
+#history-filters select:focus {
+  outline: none;
+  border-color: var(--accent-prismatic);
+}
+
+/* Match table */
+#match-list-container {
+  overflow-x: auto;
+  margin-bottom: 8px;
+}
+#match-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+#match-table thead th {
+  background: var(--bg-secondary);
+  padding: 8px 10px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+#match-table tbody tr {
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+#match-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+#match-table tbody tr.expanded {
+  background: var(--bg-hover);
+}
+#match-table tbody td {
+  padding: 8px 10px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.col-placement { width: 40px; text-align: center; }
+.col-champion { min-width: 140px; }
+.col-partner { min-width: 120px; }
+.col-kda { min-width: 70px; }
+.col-duration { min-width: 60px; }
+.col-date { min-width: 100px; }
+
+/* Placement badges */
+.placement-badge {
+  font-size: 16px;
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  line-height: 28px;
+  text-align: center;
+  border-radius: 50%;
+}
+.placement-1st { background: rgba(255, 215, 0, 0.15); color: var(--placement-1st); }
+.placement-2nd { background: rgba(192, 192, 192, 0.15); color: var(--placement-2nd); }
+.placement-3rd { background: rgba(205, 127, 50, 0.15); color: var(--placement-3rd); }
+.placement-4th { background: rgba(107, 114, 128, 0.15); color: var(--placement-4th); }
+
+.match-win { color: var(--win-high); font-weight: 600; }
+.match-loss { color: var(--win-low); font-weight: 600; }
+
+.champion-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.champion-cell-icon {
+  width: 24px; height: 24px;
+  border-radius: 4px;
+  object-fit: contain;
+  background: var(--bg-hover);
+}
+
+.partner-cell {
+  color: var(--text-secondary);
+}
+
+.kda-cell {
+  font-family: 'Cascadia Code', monospace;
+}
+
+/* Pagination */
+#match-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+#match-page-info {
+  font-size: 12px;
+  color: var(--text-secondary);
+  min-width: 60px;
+  text-align: center;
+}
+
+/* Match detail panel */
+#match-detail {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+#match-detail h4 {
+  color: var(--accent-prismatic);
+  margin-bottom: 8px;
+}
+.detail-participant {
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.detail-participant-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.detail-participant-name {
+  font-weight: 600;
+  font-size: 13px;
+}
+.detail-participant-items {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+.detail-item-icon {
+  width: 28px; height: 28px;
+  border-radius: 3px;
+  background: var(--bg-hover);
+  object-fit: contain;
+}
+.detail-augments {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+.detail-augment-tag {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+.detail-augment-tag.prismatic { border: 1px solid var(--accent-prismatic); }
+.detail-augment-tag.gold { border: 1px solid var(--accent-gold); }
+.detail-augment-tag.silver { border: 1px solid var(--accent-silver); }
+
+/* History footer stats */
+.history-footer {
+  display: flex;
+  gap: 16px;
+  padding: 8px 12px;
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.history-footer strong {
+  color: var(--text-primary);
+}
+
+/* ================================================================
+   Searchable Dropdown
+   ================================================================ */
+.searchable-dropdown {
+  position: relative;
+  flex: 1;
+}
+#champ-search-input {
+  width: 100%;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-size: 14px;
+}
+#champ-search-input:focus {
+  outline: none;
+  border-color: var(--accent-prismatic);
+}
+#champ-search-input::placeholder {
+  color: var(--text-muted);
+}
+.dropdown-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.1s;
+  font-size: 13px;
+}
+.dropdown-item:hover,
+.dropdown-item.highlighted {
+  background: var(--bg-hover);
+}
+.dropdown-item-icon {
+  width: 28px; height: 28px;
+  border-radius: 4px;
+  object-fit: contain;
+  background: var(--bg-hover);
+}
+.no-results {
+  padding: 12px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* ================================================================
+   Button Small Variant
+   ================================================================ */
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 12px;
+  margin-top: 0;
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ================================================================
+   Settings: Code Tag
+   ================================================================ */
+code {
+  background: var(--bg-hover);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Cascadia Code', monospace;
+  font-size: 12px;
+}

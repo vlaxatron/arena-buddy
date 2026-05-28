@@ -90,7 +90,7 @@ class TestInitDatabase:
             "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
         ).fetchall()
         conn.close()
-        assert len(tables) == 6
+        assert len(tables) == 12  # 6 Phase 1 + 6 Phase 2 tables
 
     def test_returns_path(self):
         """Returns the Path to the database."""

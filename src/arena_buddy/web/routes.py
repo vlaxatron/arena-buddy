@@ -108,3 +108,81 @@ async def stats_summary(request: Request):
         }
     finally:
         conn.close()
+
+
+@router.get("/champions/search")
+async def search_champions(request: Request, q: str = ""):
+    """Search champions by name or key (case-insensitive, partial match).
+
+    Query params:
+        q: Search string (matched against champion name and key).
+
+    Returns:
+        List of matching champion dicts. Empty list if q is empty.
+    """
+    if not q.strip():
+        return []
+    conn = _connect(request)
+    try:
+        return queries.search_champions(conn, q.strip())
+    finally:
+        conn.close()
+
+
+@router.get("/matches")
+async def list_matches(
+    request: Request,
+    champion: str | None = None,
+    placement: int | None = None,
+    limit: int = 20,
+    offset: int = 0,
+):
+    """List matches with optional filters and pagination.
+
+    Query params:
+        champion: Filter by champion key (e.g., "Lucian").
+        placement: Filter by placement (1-4).
+        limit: Maximum matches to return (default 20, max 100).
+        offset: Number of matches to skip (default 0).
+
+    Returns:
+        ``{"matches": [...], "total": N, "limit": N, "offset": N, "stats": {...}}``
+    """
+    limit = min(limit, 100)
+    limit = max(limit, 1)
+
+    conn = _connect(request)
+    try:
+        matches = queries.list_matches(conn, champion_key=champion, placement=placement, limit=limit, offset=offset)
+        total = queries.count_matches(conn, champion_key=champion, placement=placement)
+        stats = queries.get_match_stats(conn, champion_key=champion)
+
+        return {
+            "matches": matches,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "stats": stats,
+        }
+    finally:
+        conn.close()
+
+
+@router.get("/matches/{match_id}")
+async def get_match(request: Request, match_id: str):
+    """Return full match detail with participants, items, and augments.
+
+    Path params:
+        match_id: The game_id of the match.
+
+    Returns:
+        Full match detail dict with participants array.
+    """
+    conn = _connect(request)
+    try:
+        detail = queries.get_match_detail(conn, match_id)
+        if detail is None:
+            raise HTTPException(status_code=404, detail=f"Match '{match_id}' not found")
+        return detail
+    finally:
+        conn.close()

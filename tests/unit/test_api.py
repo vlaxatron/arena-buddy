@@ -149,3 +149,105 @@ class TestStaticFiles:
         response = client.get("/static/js/app.js")
         assert response.status_code == 200
         assert "function formatWinRate" in response.text
+
+
+class TestChampionSearch:
+    """GET /api/champions/search?q={query}."""
+
+    def test_exact_match_returns_champion(self, client):
+        """Searching 'Lucian' returns Lucian."""
+        response = client.get("/api/champions/search?q=Lucian")
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) >= 1
+        assert data[0]["key"] == "Lucian"
+
+    def test_partial_match_case_insensitive(self, client):
+        """Searching 'luc' (lowercase, partial) returns Lucian."""
+        response = client.get("/api/champions/search?q=luc")
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) >= 1
+        assert data[0]["key"] == "Lucian"
+
+    def test_no_match_returns_empty_list(self, client):
+        """Searching nonexistent champion returns empty list."""
+        response = client.get("/api/champions/search?q=zzznotachamp")
+        assert response.status_code == 200
+        data = response.json()
+        assert data == []
+
+    def test_empty_query_returns_empty_list(self, client):
+        """Empty query returns empty list."""
+        response = client.get("/api/champions/search?q=")
+        assert response.status_code == 200
+        assert response.json() == []
+
+    def test_search_results_have_required_fields(self, client):
+        """Search results have id, key, name, icon_filename."""
+        response = client.get("/api/champions/search?q=Lucian")
+        data = response.json()
+        for champ in data:
+            assert "id" in champ
+            assert "key" in champ
+            assert "name" in champ
+            assert "icon_filename" in champ
+
+
+class TestMatchEndpoints:
+    """GET /api/matches and GET /api/matches/{id}."""
+
+    def test_list_matches_returns_empty(self, client):
+        """When no matches exist, returns empty array with stats."""
+        response = client.get("/api/matches")
+        assert response.status_code == 200
+        data = response.json()
+        assert "matches" in data
+        assert "total" in data
+        assert "stats" in data
+        assert data["matches"] == []
+        assert data["total"] == 0
+        assert data["stats"]["total_matches"] == 0
+
+    def test_list_matches_has_pagination_fields(self, client):
+        """Response includes limit, offset, total fields."""
+        response = client.get("/api/matches?limit=10&offset=5")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["limit"] == 10
+        assert data["offset"] == 5
+        assert data["total"] == 0
+
+    def test_list_matches_respects_limit_bounds(self, client):
+        """Limit is clamped between 1 and 100."""
+        response = client.get("/api/matches?limit=200")
+        assert response.status_code == 200
+        assert response.json()["limit"] == 100
+
+        response = client.get("/api/matches?limit=0")
+        assert response.status_code == 200
+        assert response.json()["limit"] == 1
+
+    def test_list_matches_with_filters_empty_db(self, client):
+        """Filters work even with empty match database."""
+        response = client.get("/api/matches?champion=Lucian&placement=1")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["matches"] == []
+        assert data["total"] == 0
+
+    def test_match_detail_404_for_unknown(self, client):
+        """Unknown match_id returns 404."""
+        response = client.get("/api/matches/FAKE_GAME_ID_12345")
+        assert response.status_code == 404
+
+    def test_stats_includes_all_fields(self, client):
+        """Match stats response has win_rate, avg_placement keys."""
+        response = client.get("/api/matches")
+        stats = response.json()["stats"]
+        assert "total_matches" in stats
+        assert "wins" in stats
+        assert "win_rate" in stats
+        assert "avg_placement" in stats
