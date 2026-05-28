@@ -1,0 +1,282 @@
+/* ================================================================
+   Arena Buddy — Dark Theme (League Aesthetic)
+   ================================================================ */
+
+:root {
+  /* Backgrounds */
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #141422;
+  --bg-card: #1a1a2e;
+  --bg-hover: #222240;
+
+  /* Text */
+  --text-primary: #e0e0e0;
+  --text-secondary: #8888aa;
+  --text-muted: #555577;
+
+  /* Accent colors — rarity */
+  --accent-prismatic: #a855f7;
+  --accent-gold: #f59e0b;
+  --accent-silver: #94a3b8;
+
+  /* Personal stats */
+  --accent-personal: #22d3ee; /* teal/cyan */
+
+  /* Win rate gradient */
+  --win-high: #22c55e;
+  --win-mid: #eab308;
+  --win-low: #ef4444;
+
+  /* Placements */
+  --placement-1st: #ffd700;
+  --placement-2nd: #c0c0c0;
+  --placement-3rd: #cd7f32;
+  --placement-4th: #6b7280;
+
+  /* Border / utility */
+  --border-color: #2a2a40;
+  --radius: 6px;
+
+  /* Typography */
+  font-family: 'Segoe UI', 'Cascadia Code', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+/* ---- Reset ---- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ---- Title Bar ---- */
+#title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  -webkit-app-region: drag;
+}
+.app-name { font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
+.status-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--win-low);
+}
+.status-dot.connected { background: var(--win-high); }
+.status-dot.disconnected { background: var(--win-low); }
+
+/* ---- Tab Bar ---- */
+#tab-bar {
+  display: flex;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+.tab {
+  flex: 1;
+  padding: 10px 0;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.15s;
+  border-bottom: 2px solid transparent;
+}
+.tab:hover { color: var(--text-primary); background: var(--bg-hover); }
+.tab.active { color: var(--accent-prismatic); border-bottom-color: var(--accent-prismatic); }
+
+/* ---- Content ---- */
+#content { flex: 1; overflow-y: auto; padding: 16px; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ---- In-Game View ---- */
+#champion-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+}
+#champion-splash {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: var(--bg-hover);
+  border: 2px solid var(--accent-prismatic);
+}
+#champion-name { font-size: 20px; }
+.status-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+#in-game-columns, #browse-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* ---- Items ---- */
+#items-column h3, #browse-items-column h3 { margin-bottom: 8px; color: var(--accent-prismatic); }
+
+.item-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.15s;
+}
+.item-card:hover { background: var(--bg-hover); }
+.item-icon {
+  width: 36px; height: 36px;
+  border-radius: 4px;
+  background: var(--bg-hover);
+  flex-shrink: 0;
+}
+.item-info { flex: 1; min-width: 0; }
+.item-name { font-size: 13px; font-weight: 600; }
+.item-stats {
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: flex;
+  gap: 8px;
+}
+.item-personal { color: var(--accent-personal); }
+
+/* ---- Augments ---- */
+.augment-group { margin-bottom: 8px; }
+.augment-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--accent-silver);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.15s;
+}
+.augment-card:hover { background: var(--bg-hover); }
+.augment-card.prismatic { border-left-color: var(--accent-prismatic); }
+.augment-card.gold { border-left-color: var(--accent-gold); }
+.augment-card.silver { border-left-color: var(--accent-silver); }
+.augment-icon {
+  width: 32px; height: 32px;
+  border-radius: 4px;
+  background: var(--bg-hover);
+  flex-shrink: 0;
+}
+.augment-info { flex: 1; }
+.augment-name { font-size: 13px; font-weight: 600; }
+.augment-description {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.augment-stats {
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: flex;
+  gap: 8px;
+}
+.augment-personal { color: var(--accent-personal); }
+
+/* ---- Win Rate Colors ---- */
+.wr-high { color: var(--win-high); }
+.wr-mid { color: var(--win-mid); }
+.wr-low { color: var(--win-low); }
+
+/* ---- Augment Section Headers ---- */
+#augments-column h3 {
+  margin: 12px 0 6px 0;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+#augments-column h3:first-of-type { margin-top: 0; }
+
+/* ---- Settings ---- */
+.settings-group {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.settings-group h3 { margin-bottom: 8px; color: var(--accent-prismatic); }
+.settings-group p { color: var(--text-secondary); font-size: 13px; margin-bottom: 4px; }
+
+.btn {
+  background: var(--accent-prismatic);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 8px;
+  transition: opacity 0.15s;
+}
+.btn:hover { opacity: 0.85; }
+
+/* ---- Browse ---- */
+#champion-selector {
+  margin-bottom: 16px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+#champ-select {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-size: 14px;
+  flex: 1;
+}
+
+/* ---- Status Bar ---- */
+#status-bar {
+  padding: 6px 16px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  gap: 8px;
+}
+.separator { color: var(--border-color); }
+
+/* ---- Placeholder ---- */
+.placeholder-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--text-muted);
+  font-size: 15px;
+  font-style: italic;
+}

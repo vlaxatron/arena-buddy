@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arena Buddy</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <!-- Title Bar -->
+  <header id="title-bar">
+    <span class="app-name">⚔ Arena Buddy</span>
+    <span id="connection-status" class="status-dot disconnected" title="Disconnected"></span>
+  </header>
+
+  <!-- Tab Navigation -->
+  <nav id="tab-bar">
+    <button class="tab active" data-tab="in-game">▶ In Game</button>
+    <button class="tab" data-tab="history">📋 History</button>
+    <button class="tab" data-tab="browse">🔍 Browse</button>
+    <button class="tab" data-tab="settings">⚙ Settings</button>
+  </nav>
+
+  <!-- Content Area -->
+  <main id="content">
+    <!-- In-Game View -->
+    <section id="tab-in-game" class="tab-content active">
+      <div id="champion-header">
+        <img id="champion-splash" src="" alt="">
+        <div>
+          <h2 id="champion-name">Select a champion</h2>
+          <span id="game-status" class="status-badge">No game detected</span>
+        </div>
+      </div>
+      <div id="in-game-columns">
+        <div id="items-column">
+          <h3>📦 BEST ITEMS</h3>
+          <div id="items-list"></div>
+        </div>
+        <div id="augments-column">
+          <h3>🟣 PRISMATIC AUGMENTS</h3>
+          <div id="augments-prismatic" class="augment-group"></div>
+          <h3>🟠 GOLD AUGMENTS</h3>
+          <div id="augments-gold" class="augment-group"></div>
+          <h3>⚪ SILVER AUGMENTS</h3>
+          <div id="augments-silver" class="augment-group"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Match History View -->
+    <section id="tab-history" class="tab-content">
+      <div class="placeholder-message">Match history coming in Phase 2. Play some Arena games!</div>
+    </section>
+
+    <!-- Browse View -->
+    <section id="tab-browse" class="tab-content">
+      <div id="champion-selector">
+        <label for="champ-select">Choose a champion:</label>
+        <select id="champ-select">
+          <option value="">-- Select --</option>
+        </select>
+      </div>
+      <div id="browse-content">
+        <div id="browse-items-column">
+          <h3>📦 BEST ITEMS</h3>
+          <div id="browse-items-list"></div>
+        </div>
+        <div id="browse-augments-column">
+          <h3>🟣 PRISMATIC AUGMENTS</h3>
+          <div id="browse-augments-prismatic" class="augment-group"></div>
+          <h3>🟠 GOLD AUGMENTS</h3>
+          <div id="browse-augments-gold" class="augment-group"></div>
+          <h3>⚪ SILVER AUGMENTS</h3>
+          <div id="browse-augments-silver" class="augment-group"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Settings View -->
+    <section id="tab-settings" class="tab-content">
+      <div class="settings-group">
+        <h3>Stats</h3>
+        <div id="stats-info">
+          <p>Patch: <strong id="stats-patch">—</strong></p>
+          <p>Last updated: <strong id="stats-last-updated">—</strong></p>
+          <p>Champions covered: <strong id="stats-champ-count">—</strong></p>
+        </div>
+        <button id="refresh-stats-btn" class="btn">🔄 Refresh Stats</button>
+      </div>
+      <div class="settings-group">
+        <h3>About</h3>
+        <p>Arena Buddy v0.1.0</p>
+        <p>Free, open-source Arena companion. MIT License.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer id="status-bar">
+    <span id="stats-freshness">📊 Global: Patch — · Updated —</span>
+    <span class="separator">|</span>
+    <span id="personal-stats-summary">📋 You: — games tracked</span>
+  </footer>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

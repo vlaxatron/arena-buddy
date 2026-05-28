@@ -1,7 +1,7 @@
 """FastAPI application factory for Arena Buddy.
 
 Creates and configures the FastAPI app, sets up database connection,
-and mounts the API routes.
+mounts API routes, and serves static files (HTML/CSS/JS).
 """
 
 from __future__ import annotations
@@ -12,6 +12,8 @@ from pathlib import Path
 from typing import AsyncGenerator
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from arena_buddy import __version__
 from arena_buddy.db.connection import init_database
@@ -50,6 +52,9 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         from arena_buddy.config import get_db_path
         db_path = get_db_path()
 
+    # Resolve the static files directory relative to this module
+    static_dir = Path(__file__).parent / "static"
+
     app = FastAPI(
         title="Arena Buddy",
         description="LoL Arena companion — item/augment recommendations",
@@ -60,7 +65,19 @@ def create_app(db_path: Path | None = None) -> FastAPI:
     # Store db_path in app state for routes to access
     app.state.db_path = Path(db_path)
 
+    # Mount static files (CSS, JS, images)
+    if static_dir.exists():
+        app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
     # Register API routes
     app.include_router(router, prefix="/api")
+
+    # Serve index.html at root
+    @app.get("/")
+    async def index():
+        index_path = static_dir / "index.html"
+        if index_path.exists():
+            return FileResponse(str(index_path))
+        return {"status": "ok", "message": "Arena Buddy API — see /docs for API reference"}
 
     return app

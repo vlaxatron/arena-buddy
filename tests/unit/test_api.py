@@ -126,3 +126,26 @@ class TestStatsSummaryEndpoint:
         response = client.get("/api/stats/summary")
         data = response.json()
         assert "last_updated" in data
+
+
+class TestStaticFiles:
+    """Static file and index serving."""
+
+    def test_index_returns_html(self, client):
+        """GET / returns HTML containing Arena Buddy."""
+        response = client.get("/")
+        assert response.status_code == 200
+        assert "Arena Buddy" in response.text
+        assert "<!DOCTYPE html>" in response.text
+
+    def test_css_served(self, client):
+        """GET /static/css/style.css returns CSS."""
+        response = client.get("/static/css/style.css")
+        assert response.status_code == 200
+        assert "var(--bg-primary)" in response.text
+
+    def test_js_served(self, client):
+        """GET /static/js/app.js returns JavaScript."""
+        response = client.get("/static/js/app.js")
+        assert response.status_code == 200
+        assert "function formatWinRate" in response.text
