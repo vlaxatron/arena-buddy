@@ -173,7 +173,7 @@ class TestDownloadAugmentIcon:
 
         path = download_augment_icon("WarmupRoutine")
         assert path.exists()
-        assert path.name == "WarmupRoutine_large.png"
+        assert path.name == "WarmupRoutine.png"
         assert path.parent == temp_cache_dir / "augments"
 
     def test_skips_existing_augment(self, monkeypatch, temp_cache_dir):
@@ -184,7 +184,7 @@ class TestDownloadAugmentIcon:
             "arena_buddy.assets.icons.get_cache_dir", lambda: temp_cache_dir
         )
 
-        cache_file = temp_cache_dir / "augments" / "WarmupRoutine_large.png"
+        cache_file = temp_cache_dir / "augments" / "WarmupRoutine.png"
         cache_file.parent.mkdir(parents=True, exist_ok=True)
         cache_file.write_bytes(FAKE_PNG)
 
@@ -414,9 +414,9 @@ class TestDownloadAllAugmentIcons:
 
         # BackToBasics gets a 404
         response_map = {
-            "https://raw.communitydragon.org/latest/game/assets/ux/cherry/augments/icons/WarmupRoutine_large.png": _fake_response(),
-            "https://raw.communitydragon.org/latest/game/assets/ux/cherry/augments/icons/BackToBasics_large.png": _fake_response(status_code=404),
-            "https://raw.communitydragon.org/latest/game/assets/ux/cherry/augments/icons/BladeWaltz_large.png": _fake_response(),
+            "https://raw.communitydragon.org/latest/game/assets/ux/cherry/augments/icons/warmuproutine_large.png": _fake_response(),
+            "https://raw.communitydragon.org/latest/game/assets/ux/cherry/augments/icons/backtobasics_large.png": _fake_response(status_code=404),
+            "https://raw.communitydragon.org/latest/game/assets/ux/cherry/augments/icons/bladewaltz_large.png": _fake_response(),
         }
         monkeypatch.setattr(
             "arena_buddy.assets.icons.httpx.Client",
@@ -488,7 +488,7 @@ class TestUrlConstruction:
         url = mock_client.get.call_args[0][0]
         assert url == (
             "https://raw.communitydragon.org/latest/game/assets/ux/cherry/augments/icons/"
-            "SymphonyOfWar_large.png"
+            "symphonyofwar_large.png"
         )
 
 

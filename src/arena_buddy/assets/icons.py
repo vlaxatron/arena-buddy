@@ -101,8 +101,9 @@ def download_augment_icon(api_name: str) -> Path:
     Returns:
         Path to the cached file on disk.
     """
-    url = f"{_CDRAGON_AUGMENT_BASE}/{api_name}_large.png"
-    local_path = get_cache_dir() / "augments" / f"{api_name}_large.png"
+    # CommunityDragon stores icons with lowercase filenames
+    url = f"{_CDRAGON_AUGMENT_BASE}/{api_name.lower()}_large.png"
+    local_path = get_cache_dir() / "augments" / f"{api_name}.png"
     return _download_and_cache(url, local_path)
 
 
