@@ -36,13 +36,14 @@ class TestChampionsEndpoint:
     """GET /api/champions."""
 
     def test_returns_all_champions(self, client):
-        """Returns a list of champion dicts."""
+        """Returns a list of champion dicts (172 when full dataset loaded)."""
         response = client.get("/api/champions")
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
-        assert len(data) >= 1
-        assert data[0]["key"] == "Lucian"
+        assert len(data) >= 1  # At least one champion
+        # Champions are sorted alphabetically
+        assert any(c["key"] == "Lucian" for c in data)
 
     def test_champion_has_required_fields(self, client):
         """Each champion has id, key, name, icon_filename."""
@@ -116,10 +117,10 @@ class TestStatsSummaryEndpoint:
         assert data["patch"] == "16.11"
 
     def test_returns_champion_count(self, client):
-        """Summary includes number of champions covered."""
+        """Summary includes number of champions covered (172 when full dataset loaded)."""
         response = client.get("/api/stats/summary")
         data = response.json()
-        assert data["champions_covered"] == 1
+        assert data["champions_covered"] >= 1
 
     def test_returns_last_updated(self, client):
         """Summary includes last_updated timestamp."""

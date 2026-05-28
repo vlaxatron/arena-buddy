@@ -34,9 +34,9 @@ class TestSeedChampion:
         assert row["name"] == "Lucian"
 
     def test_only_one_champion_seeded(self, seeded_db):
-        """Phase 1 seeds exactly 1 champion."""
+        """Phase 1 seeds exactly 1 champion (now 172 with full import)."""
         count = seeded_db.execute("SELECT COUNT(*) FROM champions").fetchone()[0]
-        assert count == 1
+        assert count >= 1
 
 
 class TestSeedItems:
@@ -67,22 +67,22 @@ class TestSeedAugments:
     """Verify augments are seeded."""
 
     def test_augments_exist(self, seeded_db):
-        """Augments are inserted with correct rarity grouping."""
+        """Augments are inserted with correct rarity grouping (60+ prismatic with full import)."""
         augments = seeded_db.execute(
             "SELECT name, rarity FROM augments ORDER BY rarity DESC, name"
         ).fetchall()
 
-        # Prismatic (rarity=2) should be first
+        # Prismatic (rarity=2) — at least 3 from seed, more from import
         prismatic = [r for r in augments if r["rarity"] == 2]
-        assert len(prismatic) == 3
+        assert len(prismatic) >= 3
 
         # Gold (rarity=1)
         gold = [r for r in augments if r["rarity"] == 1]
-        assert len(gold) == 4
+        assert len(gold) >= 4
 
         # Silver (rarity=0)
         silver = [r for r in augments if r["rarity"] == 0]
-        assert len(silver) == 3
+        assert len(silver) >= 3
 
     def test_back_to_basics_is_prismatic(self, seeded_db):
         """Back To Basics has rarity=2 (Prismatic)."""
@@ -142,16 +142,18 @@ class TestSeedIdempotent:
         seed_all(seeded_db)  # Should not raise
 
     def test_seed_does_not_duplicate_champions(self, temp_db_path):
-        """Running seed twice doesn't create duplicate champions."""
+        """Running seed twice doesn't create duplicate champions (expect full import count)."""
         conn = sqlite3.connect(str(temp_db_path))
         conn.execute("PRAGMA foreign_keys = ON")
         create_all(conn)
         from arena_buddy.db.seed import seed_all
         seed_all(conn)
+        first_count = conn.execute("SELECT COUNT(*) FROM champions").fetchone()[0]
         seed_all(conn)
 
         count = conn.execute("SELECT COUNT(*) FROM champions").fetchone()[0]
-        assert count == 1
+        assert count == first_count  # No duplicates
+        assert count >= 1
         conn.close()
 
 

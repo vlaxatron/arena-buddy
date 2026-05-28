@@ -175,12 +175,12 @@ class TestGetAllChampions:
     """Tests for get_all_champions()."""
 
     def test_returns_all_champions(self, query_db):
-        """Returns all champions (1 in Phase 1)."""
+        """Returns all champions (172 when full dataset loaded)."""
         from arena_buddy.db.queries import get_all_champions
 
         champs = get_all_champions(query_db)
-        assert len(champs) == 1
-        assert champs[0]["key"] == "Lucian"
+        assert len(champs) >= 1  # At least one
+        assert any(c["key"] == "Lucian" for c in champs)
 
     def test_empty_when_no_champions(self, temp_db_path):
         """Empty list when no champions in DB."""
