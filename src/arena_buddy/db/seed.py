@@ -35,27 +35,37 @@ ITEMS = [
 AUGMENTS = [
     # Prismatic (rarity=2)
     (101, "BackToBasics", "Back To Basics", 2,
-     "Your basic abilities deal massively increased damage, but your ultimate is disabled."),
+     "Your basic abilities deal massively increased damage, but your ultimate is disabled.",
+     "BackToBasics.png"),
     (102, "BladeWaltz", "Blade Waltz", 2,
-     "Become untargetable and dash through enemies dealing damage."),
+     "Become untargetable and dash through enemies dealing damage.",
+     "BladeWaltz.png"),
     (103, "SymphonyOfWar", "Symphony of War", 2,
-     "Gain massive attack speed and on-hit damage."),
+     "Gain massive attack speed and on-hit damage.",
+     "SymphonyOfWar.png"),
     # Gold (rarity=1)
     (201, "ADAPt", "ADAPt", 1,
-     "Gain adaptive force based on your items."),
+     "Gain adaptive force based on your items.",
+     "ADAPt.png"),
     (202, "BuffBuddies", "Buff Buddies", 1,
-     "Buffs you apply to allies are stronger."),
+     "Buffs you apply to allies are stronger.",
+     "BuffBuddies.png"),
     (203, "BreadAndButter", "Bread And Butter", 1,
-     "Your most-used ability deals bonus damage."),
+     "Your most-used ability deals bonus damage.",
+     "BreadAndButter.png"),
     (204, "Vulnerability", "Vulnerability", 1,
-     "Damaging enemies makes them take increased damage."),
+     "Damaging enemies makes them take increased damage.",
+     "Vulnerability.png"),
     # Silver (rarity=0)
     (301, "Stats", "Stats!", 0,
-     "Gain a small amount of all stats."),
+     "Gain a small amount of all stats.",
+     "Stats.png"),
     (302, "WarmupRoutine", "Warmup Routine", 0,
-     "Gain increasing stats over the first minutes of combat."),
+     "Gain increasing stats over the first minutes of combat.",
+     "WarmupRoutine.png"),
     (303, "TankItOrLeaveIt", "Tank It Or Leave It", 0,
-     "Gain bonus resistances when below 50% health."),
+     "Gain bonus resistances when below 50% health.",
+     "TankItOrLeaveIt.png"),
 ]
 
 # (champion_id, item_id, patch_id, win_rate, pick_rate, games_played, rank)
@@ -161,8 +171,8 @@ def _seed_items(conn: sqlite3.Connection) -> None:
 
 def _seed_augments(conn: sqlite3.Connection) -> None:
     conn.executemany(
-        "INSERT OR IGNORE INTO augments (id, api_name, name, rarity, description) "
-        "VALUES (?, ?, ?, ?, ?)",
+        "INSERT OR IGNORE INTO augments (id, api_name, name, rarity, description, icon_filename) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
         AUGMENTS,
     )
 

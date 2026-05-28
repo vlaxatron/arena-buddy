@@ -72,6 +72,12 @@ def create_app(db_path: Path | None = None) -> FastAPI:
     # Register API routes
     app.include_router(router, prefix="/api")
 
+    # Serve cached icons
+    from arena_buddy.config import get_cache_dir
+    cache_dir = get_cache_dir()
+    if cache_dir.exists():
+        app.mount("/icons", StaticFiles(directory=str(cache_dir)), name="icons")
+
     # Serve index.html at root
     @app.get("/")
     async def index():

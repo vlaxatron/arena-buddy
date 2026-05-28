@@ -152,6 +152,7 @@ body {
   border-radius: 4px;
   background: var(--bg-hover);
   flex-shrink: 0;
+  object-fit: contain;
 }
 .item-info { flex: 1; min-width: 0; }
 .item-name { font-size: 13px; font-weight: 600; }
@@ -186,6 +187,7 @@ body {
   border-radius: 4px;
   background: var(--bg-hover);
   flex-shrink: 0;
+  object-fit: contain;
 }
 .augment-info { flex: 1; }
 .augment-name { font-size: 13px; font-weight: 600; }

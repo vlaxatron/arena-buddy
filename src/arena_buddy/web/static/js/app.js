@@ -61,10 +61,13 @@ function renderItemCard(item) {
   const personal = formatPersonalStat(item.personal_win_rate, item.personal_games);
   const pr = formatPickRate(item.pick_rate);
   const games = formatGames(item.games_played);
+  const iconSrc = item.icon_filename
+    ? `/icons/items/${item.icon_filename}`
+    : '';
 
   return `
     <div class="item-card">
-      <div class="item-icon" style="background:var(--bg-hover)"></div>
+      ${iconSrc ? `<img class="item-icon" src="${iconSrc}" alt="${escapeHTML(item.name)}" onerror="this.style.display='none'">` : '<div class="item-icon"></div>'}
       <div class="item-info">
         <div class="item-name">${escapeHTML(item.name)}</div>
         <div class="item-stats">
@@ -81,10 +84,13 @@ function renderItemCard(item) {
 function renderAugmentCard(aug, tier) {
   const wr = formatWinRate(aug.win_rate);
   const personal = formatPersonalStat(aug.personal_win_rate, aug.personal_games);
+  const iconSrc = aug.icon_filename
+    ? `/icons/augments/${aug.icon_filename}`
+    : '';
 
   return `
     <div class="augment-card ${tier}">
-      <div class="augment-icon" style="background:var(--bg-hover)"></div>
+      ${iconSrc ? `<img class="augment-icon" src="${iconSrc}" alt="${escapeHTML(aug.name)}" onerror="this.style.display='none'">` : '<div class="augment-icon"></div>'}
       <div class="augment-info">
         <div class="augment-name">${escapeHTML(aug.name)}</div>
         <div class="augment-description">${escapeHTML(aug.description || '')}</div>
