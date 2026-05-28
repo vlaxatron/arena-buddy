@@ -3,11 +3,17 @@
 Inserts hardcoded champion, item, augment, and global stats data.
 All INSERTs use ``INSERT OR IGNORE`` (or ``INSERT ... ON CONFLICT DO NOTHING``
 for the composite-PK tables) so the module is idempotent.
+
+When Data Dragon / CommunityDragon JSON files are present in the cache
+directory (``~/.cache/arena-buddy/data/``), the importer is called first
+to populate the database with the full dataset before the hardcoded
+fallback seed data is applied.
 """
 
 from __future__ import annotations
 
 import sqlite3
+from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Lucian data
@@ -91,9 +97,15 @@ PATCH = ("16.11",)
 def seed_all(conn: sqlite3.Connection) -> None:
     """Insert all seed data into *conn* (idempotent — safe to call repeatedly).
 
+    If Data Dragon / CommunityDragon JSON files are found in the cache
+    directory they are imported first, providing the full dataset.
+    Hardcoded fallback data is always applied afterward (INSERT OR IGNORE
+    ensures no duplicates).
+
     Args:
         conn: An open :class:`sqlite3.Connection`.
     """
+    _seed_from_files(conn)
     _seed_champions(conn)
     _seed_items(conn)
     _seed_augments(conn)
@@ -105,6 +117,32 @@ def seed_all(conn: sqlite3.Connection) -> None:
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
+# Known cache location for Data Dragon / CommunityDragon data files
+_CACHE_DIR = Path.home() / ".cache" / "arena-buddy" / "data"
+_CHAMPIONS_FILE = "champions.json"
+_ITEMS_FILE = "items.json"
+_AUGMENTS_FILE = "augments.json"
+
+
+def _seed_from_files(conn: sqlite3.Connection) -> None:
+    """Import full dataset from cache files if they exist.
+
+    Looks for ``champions.json``, ``items.json``, and ``augments.json`` in
+    ``~/.cache/arena-buddy/data/``.  Missing files are silently skipped
+    (the hardcoded fallback data will still be applied).  Malformed files
+    raise :class:`ValueError`.
+    """
+    from arena_buddy.db.importer import import_all  # local import
+
+    champions_path = _CACHE_DIR / _CHAMPIONS_FILE
+    items_path = _CACHE_DIR / _ITEMS_FILE
+    augments_path = _CACHE_DIR / _AUGMENTS_FILE
+
+    # Only call the importer if all three files exist
+    if champions_path.exists() and items_path.exists() and augments_path.exists():
+        import_all(conn, champions_path, items_path, augments_path)
+
 
 def _seed_champions(conn: sqlite3.Connection) -> None:
     conn.execute(
