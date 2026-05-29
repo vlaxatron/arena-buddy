@@ -67,8 +67,6 @@ a = Analysis(
     excludes=[
         "tkinter",
         "unittest",
-        "email",
-        "http",
         "xmlrpc",
         "pydoc",
     ],
