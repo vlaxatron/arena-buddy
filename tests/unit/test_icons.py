@@ -578,3 +578,130 @@ class TestNetworkFailureResilience:
 
         # Only 2 successful downloads, no crash
         assert len(paths) == 2
+
+
+# ---------------------------------------------------------------------------
+# Test ensure_icons_for_champion
+# ---------------------------------------------------------------------------
+
+class TestEnsureIconsForChampion:
+    """Tests for ensure_icons_for_champion() — lazy icon download."""
+
+    def test_downloads_all_types(self, monkeypatch, temp_cache_dir):
+        """Downloads champion, item, and augment icons."""
+        from arena_buddy.assets.icons import ensure_icons_for_champion
+
+        monkeypatch.setattr(
+            "arena_buddy.assets.icons.get_cache_dir", lambda: temp_cache_dir
+        )
+        monkeypatch.setattr(
+            "arena_buddy.assets.icons.httpx.Client",
+            lambda *a, **kw: _make_mock_client(),
+        )
+
+        result = ensure_icons_for_champion(
+            champion_key="Lucian",
+            champion_icon="Lucian.png",
+            item_ids=[1001, 1004],
+            augment_api_names=["BackToBasics", "WarmupRoutine"],
+        )
+
+        assert result["champion"] == 1
+        assert result["item"] == 2
+        assert result["augment"] == 2
+        assert result["skipped"] == 0
+
+        # Verify files exist
+        assert (temp_cache_dir / "champions" / "Lucian.png").exists()
+        assert (temp_cache_dir / "items" / "1001.png").exists()
+        assert (temp_cache_dir / "augments" / "BackToBasics.png").exists()
+
+    def test_skips_existing_files(self, monkeypatch, temp_cache_dir):
+        """Already-cached files are counted but not re-downloaded."""
+        from arena_buddy.assets.icons import ensure_icons_for_champion
+
+        monkeypatch.setattr(
+            "arena_buddy.assets.icons.get_cache_dir", lambda: temp_cache_dir
+        )
+
+        # Pre-create files
+        champ_dir = temp_cache_dir / "champions"
+        item_dir = temp_cache_dir / "items"
+        champ_dir.mkdir(parents=True, exist_ok=True)
+        item_dir.mkdir(parents=True, exist_ok=True)
+        champ_dir.joinpath("Lucian.png").write_bytes(FAKE_PNG)
+        item_dir.joinpath("1001.png").write_bytes(FAKE_PNG)
+
+        mock_client = _make_mock_client()
+        monkeypatch.setattr(
+            "arena_buddy.assets.icons.httpx.Client",
+            lambda *a, **kw: mock_client,
+        )
+
+        result = ensure_icons_for_champion(
+            champion_key="Lucian",
+            champion_icon="Lucian.png",
+            item_ids=[1001, 1004],
+            augment_api_names=[],
+        )
+
+        # Champion and item 1001 already cached → not re-downloaded
+        # Item 1004 and augments were not pre-created → downloaded
+        assert result["champion"] == 1
+        assert result["item"] == 2
+        assert result["skipped"] == 0
+
+        # Client.get should only be called for the missing item (1004)
+        # since champion and 1001 already exist
+        call_count = mock_client.get.call_count
+        assert call_count == 1, f"Expected 1 download (1004), got {call_count}"
+
+    def test_empty_lists_return_zero(self, monkeypatch, temp_cache_dir):
+        """Empty item/augment lists return zero counts with no errors."""
+        from arena_buddy.assets.icons import ensure_icons_for_champion
+
+        monkeypatch.setattr(
+            "arena_buddy.assets.icons.get_cache_dir", lambda: temp_cache_dir
+        )
+        monkeypatch.setattr(
+            "arena_buddy.assets.icons.httpx.Client",
+            lambda *a, **kw: _make_mock_client(),
+        )
+
+        result = ensure_icons_for_champion(
+            champion_key="Lucian",
+            champion_icon="Lucian.png",
+            item_ids=[],
+            augment_api_names=[],
+        )
+
+        assert result["champion"] == 1
+        assert result["item"] == 0
+        assert result["augment"] == 0
+        assert result["skipped"] == 0
+
+    def test_handles_download_failures_gracefully(self, monkeypatch, temp_cache_dir):
+        """Failed downloads are counted as skipped, not raised."""
+        from arena_buddy.assets.icons import ensure_icons_for_champion
+
+        monkeypatch.setattr(
+            "arena_buddy.assets.icons.get_cache_dir", lambda: temp_cache_dir
+        )
+        # All requests return 404
+        monkeypatch.setattr(
+            "arena_buddy.assets.icons.httpx.Client",
+            lambda *a, **kw: _make_mock_client(default_status=404),
+        )
+
+        result = ensure_icons_for_champion(
+            champion_key="Missing",
+            champion_icon="Missing.png",
+            item_ids=[99999],
+            augment_api_names=["FakeAugment"],
+        )
+
+        # All failed → counted as skipped
+        assert result["champion"] == 0
+        assert result["item"] == 0
+        assert result["augment"] == 0
+        assert result["skipped"] == 3

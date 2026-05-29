@@ -195,3 +195,54 @@ def download_all_augment_icons(
         Paths of successfully downloaded augment icons.
     """
     return _batch_download(augments, download_augment_icon, on_progress=on_progress)
+
+
+# ---------------------------------------------------------------------------
+# Lazy icon ensure — call when champion data is loaded
+# ---------------------------------------------------------------------------
+
+def ensure_icons_for_champion(
+    champion_key: str,
+    champion_icon: str,
+    item_ids: list[int],
+    augment_api_names: list[str],
+) -> dict[str, int]:
+    """Ensure all icons for a champion are cached locally.
+
+    Downloads any missing champion, item, and augment icons from their
+    respective CDN sources.  Skips files that already exist on disk
+    (each ``download_*`` function checks for existence first).
+
+    Args:
+        champion_key: Internal champion key (e.g. ``"Lucian"``).
+        champion_icon: Champion icon filename (e.g. ``"Lucian.png"``).
+        item_ids: List of numeric item IDs to download icons for.
+        augment_api_names: List of augment *apiName* strings.
+
+    Returns:
+        A dict with counts::
+            {"champion": N, "item": N, "augment": N, "skipped": N}
+    """
+    result: dict[str, int] = {"champion": 0, "item": 0, "augment": 0, "skipped": 0}
+
+    try:
+        download_champion_icon(champion_key, champion_icon)
+        result["champion"] = 1
+    except (httpx.HTTPStatusError, httpx.RequestError):
+        result["skipped"] += 1
+
+    for item_id in item_ids:
+        try:
+            download_item_icon(item_id)
+            result["item"] += 1
+        except (httpx.HTTPStatusError, httpx.RequestError):
+            result["skipped"] += 1
+
+    for api_name in augment_api_names:
+        try:
+            download_augment_icon(api_name)
+            result["augment"] += 1
+        except (httpx.HTTPStatusError, httpx.RequestError):
+            result["skipped"] += 1
+
+    return result

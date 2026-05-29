@@ -54,14 +54,18 @@ def get_items_for_champion(
             i.name,
             i.icon_filename,
             i.gold_cost,
+            i.is_prismatic,
             gis.win_rate,
             gis.pick_rate,
             gis.games_played,
             gis.rank,
-            CAST(NULL AS REAL) AS personal_win_rate,
-            0 AS personal_games
+            COALESCE(pis.win_rate, NULL) AS personal_win_rate,
+            COALESCE(pis.games_played, 0) AS personal_games
         FROM global_item_stats gis
         JOIN items i ON gis.item_id = i.id
+        LEFT JOIN personal_item_stats pis
+            ON pis.champion_id = gis.champion_id
+            AND pis.item_id = gis.item_id
         WHERE gis.champion_id = ? AND gis.patch_id = ?
         ORDER BY gis.win_rate DESC
         """,
@@ -101,12 +105,17 @@ def get_augments_for_champion(
             gas.pick_rate,
             gas.games_played,
             gas.rank,
-            CAST(NULL AS REAL) AS personal_win_rate,
-            0 AS personal_games
+            COALESCE(pas.win_rate, NULL) AS personal_win_rate,
+            COALESCE(pas.games_played, 0) AS personal_games
         FROM global_augment_stats gas
         JOIN augments a ON gas.augment_id = a.id
+        LEFT JOIN personal_augment_stats pas
+            ON pas.champion_id = gas.champion_id
+            AND pas.augment_id = gas.augment_id
         WHERE gas.champion_id = ? AND gas.patch_id = ?
-        ORDER BY gas.rarity DESC, gas.win_rate DESC
+          AND gas.rarity IN (0, 1, 2)
+          AND gas.games_played >= 20
+        ORDER BY gas.rarity DESC, gas.pick_rate DESC, gas.win_rate DESC
         """,
         (champion_id, patch_id),
     ).fetchall()

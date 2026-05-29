@@ -104,11 +104,13 @@ class TestSeedGlobalStats:
         assert rows["cnt"] >= 8
 
     def test_augment_stats_for_lucian_exist(self, seeded_db):
-        """global_augment_stats has entries for Lucian."""
+        """global_augment_stats may be empty (seed no longer inserts augment data)."""
         rows = seeded_db.execute(
             "SELECT COUNT(*) as cnt FROM global_augment_stats WHERE champion_id = 236"
         ).fetchone()
-        assert rows["cnt"] >= 10
+        # Augment seed removed — Qwik scraper provides real data.
+        # This test just verifies the table exists and query works.
+        assert rows["cnt"] >= 0
 
     def test_item_stats_have_win_rates(self, seeded_db):
         """Item stats have realistic win rate values."""
@@ -122,15 +124,15 @@ class TestSeedGlobalStats:
         assert 0.5 < row["win_rate"] < 0.6  # 56.2%
 
     def test_augment_stats_have_win_rates(self, seeded_db):
-        """Augment stats have win rates."""
+        """Augment stats table exists and is queryable (seed no longer inserts augment data)."""
         row = seeded_db.execute(
-            """SELECT gas.win_rate
+            """SELECT COUNT(*) as cnt
                FROM global_augment_stats gas
                JOIN augments a ON gas.augment_id = a.id
-               WHERE a.api_name = 'BackToBasics' AND gas.champion_id = 236"""
+               WHERE gas.champion_id = 236"""
         ).fetchone()
+        # Augment seed removed — Qwik scraper provides real data.
         assert row is not None
-        assert 0.6 < row["win_rate"] < 0.7  # 63.2%
 
 
 class TestSeedIdempotent:

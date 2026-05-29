@@ -9,16 +9,16 @@
 <body>
   <!-- Title Bar -->
   <header id="title-bar">
-    <span class="app-name">⚔ Arena Buddy</span>
+    <span class="app-name">Arena Buddy</span>
     <span id="connection-status" class="status-dot disconnected" title="Disconnected"></span>
   </header>
 
   <!-- Tab Navigation -->
   <nav id="tab-bar">
-    <button class="tab active" data-tab="in-game">▶ In Game</button>
-    <button class="tab" data-tab="history">📋 History</button>
-    <button class="tab" data-tab="browse">🔍 Browse</button>
-    <button class="tab" data-tab="settings">⚙ Settings</button>
+    <button class="tab active" data-tab="in-game">In Game</button>
+    <button class="tab" data-tab="history">History</button>
+    <button class="tab" data-tab="browse">Browse</button>
+    <button class="tab" data-tab="settings">Settings</button>
   </nav>
 
   <!-- Content Area -->
@@ -32,18 +32,38 @@
           <span id="game-status" class="status-badge">No game detected</span>
         </div>
       </div>
+      <!-- Recent Matches Strip -->
+      <div id="recent-matches-strip" class="recent-matches-strip" style="display:none">
+        <span class="recent-label">Recent:</span>
+        <div id="recent-matches-list" class="recent-matches-list"></div>
+      </div>
+      <!-- Match Tooltip (hover popup) -->
+      <div id="match-tooltip" class="match-tooltip" style="display:none"></div>
       <div id="in-game-columns">
-        <div id="items-column">
-          <h3>📦 BEST ITEMS</h3>
-          <div id="items-list"></div>
+        <!-- LEFT: Prismatic Items -->
+        <div id="prismatic-column">
+          <h3><span class="rarity-dot prismatic"></span> Prismatic Items <span id="prismatic-count" class="augment-tier-count"></span></h3>
+          <div id="prismatic-items-list"></div>
         </div>
+        <!-- MIDDLE: Regular Items -->
+        <div id="items-column">
+          <h3><span class="rarity-dot boots"></span> Boots <span id="boots-count" class="augment-tier-count"></span></h3>
+          <div id="boots-list"></div>
+          <h3>Best Items</h3>
+          <div id="items-list" class="augment-group collapsed"></div>
+          <button class="augment-toggle" data-target="items-list">Show all ▾</button>
+        </div>
+        <!-- RIGHT: Augments -->
         <div id="augments-column">
-          <h3>🟣 PRISMATIC AUGMENTS</h3>
-          <div id="augments-prismatic" class="augment-group"></div>
-          <h3>🟠 GOLD AUGMENTS</h3>
-          <div id="augments-gold" class="augment-group"></div>
-          <h3>⚪ SILVER AUGMENTS</h3>
-          <div id="augments-silver" class="augment-group"></div>
+          <h3><span class="rarity-dot prismatic"></span> Prismatic Augments <span id="aug-prismatic-count" class="augment-tier-count"></span></h3>
+          <div id="augments-prismatic" class="augment-group collapsed"></div>
+          <button class="augment-toggle" data-target="augments-prismatic">Show all ▾</button>
+          <h3><span class="rarity-dot gold"></span> Gold Augments <span id="aug-gold-count" class="augment-tier-count"></span></h3>
+          <div id="augments-gold" class="augment-group collapsed"></div>
+          <button class="augment-toggle" data-target="augments-gold">Show all ▾</button>
+          <h3><span class="rarity-dot silver"></span> Silver Augments <span id="aug-silver-count" class="augment-tier-count"></span></h3>
+          <div id="augments-silver" class="augment-group collapsed"></div>
+          <button class="augment-toggle" data-target="augments-silver">Show all ▾</button>
         </div>
       </div>
     </section>
@@ -57,12 +77,12 @@
         </select>
         <select id="history-placement-filter">
           <option value="">All Placements</option>
-          <option value="1">🏆 1st</option>
-          <option value="2">🥈 2nd</option>
-          <option value="3">🥉 3rd</option>
-          <option value="4">💀 4th</option>
+          <option value="1">1st Place</option>
+          <option value="2">2nd Place</option>
+          <option value="3">3rd Place</option>
+          <option value="4">4th Place</option>
         </select>
-        <button id="history-refresh-btn" class="btn btn-sm">🔄 Refresh</button>
+        <button id="history-refresh-btn" class="btn btn-sm">Refresh</button>
       </div>
       <!-- Match List -->
       <div id="match-list-container">
@@ -115,15 +135,15 @@
       </div>
       <div id="browse-content">
         <div id="browse-items-column">
-          <h3>📦 BEST ITEMS</h3>
+          <h3>Best Items</h3>
           <div id="browse-items-list"></div>
         </div>
         <div id="browse-augments-column">
-          <h3>🟣 PRISMATIC AUGMENTS</h3>
+          <h3><span class="rarity-dot prismatic"></span> Prismatic Augments</h3>
           <div id="browse-augments-prismatic" class="augment-group"></div>
-          <h3>🟠 GOLD AUGMENTS</h3>
+          <h3><span class="rarity-dot gold"></span> Gold Augments</h3>
           <div id="browse-augments-gold" class="augment-group"></div>
-          <h3>⚪ SILVER AUGMENTS</h3>
+          <h3><span class="rarity-dot silver"></span> Silver Augments</h3>
           <div id="browse-augments-silver" class="augment-group"></div>
         </div>
       </div>
@@ -132,19 +152,19 @@
     <!-- Settings View -->
     <section id="tab-settings" class="tab-content">
       <div class="settings-group">
-        <h3>📊 Stats</h3>
+        <h3>Stats</h3>
         <div id="stats-info">
           <p>Patch: <strong id="stats-patch">—</strong></p>
           <p>Last updated: <strong id="stats-last-updated">—</strong></p>
           <p>Champions covered: <strong id="stats-champ-count">—</strong></p>
         </div>
-        <button id="refresh-stats-btn" class="btn">🔄 Refresh Stats</button>
+        <button id="refresh-stats-btn" class="btn">Refresh Stats</button>
       </div>
       <div class="settings-group">
-        <h3>🖼 Icon Cache</h3>
+        <h3>Icon Cache</h3>
         <p>Icons downloaded: <strong id="icon-cache-count">—</strong></p>
         <p>Cache directory: <code id="icon-cache-dir">—</code></p>
-        <button id="trigger-scrape-btn" class="btn">🔃 Trigger Stats Scrape</button>
+        <button id="trigger-scrape-btn" class="btn">Trigger Stats Scrape</button>
       </div>
       <div class="settings-group">
         <h3>About</h3>
@@ -156,9 +176,9 @@
 
   <!-- Footer -->
   <footer id="status-bar">
-    <span id="stats-freshness">📊 Global: Patch — · Updated —</span>
+    <span id="stats-freshness">Global: Patch — · Updated —</span>
     <span class="separator">|</span>
-    <span id="personal-stats-summary">📋 You: — games tracked</span>
+    <span id="personal-stats-summary">You: — games tracked</span>
   </footer>
 
   <script src="/static/js/app.js"></script>

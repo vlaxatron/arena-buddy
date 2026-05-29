@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS items (
     name        TEXT    NOT NULL,
     icon_filename TEXT,
     gold_cost   INTEGER,
-    description TEXT
+    description TEXT,
+    is_prismatic BOOLEAN DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS augments (

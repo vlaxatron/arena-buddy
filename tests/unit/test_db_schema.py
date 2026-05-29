@@ -117,7 +117,7 @@ class TestCreateSchema:
         create_all(fresh_db)
         columns = fresh_db.execute("PRAGMA table_info(items)").fetchall()
         col_names = {col[1] for col in columns}
-        assert col_names == {"id", "name", "icon_filename", "gold_cost", "description"}
+        assert col_names == {"id", "name", "icon_filename", "gold_cost", "description", "is_prismatic"}
 
     def test_augments_has_correct_columns(self, fresh_db):
         """augments table has expected columns."""

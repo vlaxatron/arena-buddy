@@ -29,3 +29,5 @@ Thumbs.db
 *.db-wal
 cache/
 logs/
+screenshots/
+.hermes/

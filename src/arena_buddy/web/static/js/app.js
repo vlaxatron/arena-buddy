@@ -84,12 +84,9 @@ function formatDate(ts) {
   return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
-/** Return placement emoji. */
+/** Return placement number (used for CSS-styled badge). */
 function placementEmoji(p) {
-  if (p === 1) return '🏆';
-  if (p === 2) return '🥈';
-  if (p === 3) return '🥉';
-  return '💀';
+  return String(p);
 }
 
 /** Return placement CSS class. */
@@ -108,6 +105,19 @@ function rarityName(r) {
 }
 
 // ---- Render ----
+
+/** Strip CommunityDragon formatting tags from augment descriptions. */
+function cleanDescription(desc) {
+  if (!desc) return '';
+  // Remove @variable@ placeholders
+  let cleaned = desc.replace(/@[^@]+@/g, '');
+  // Strip HTML-like tags but keep their inner text
+  cleaned = cleaned.replace(/<br\s*\/?>/gi, ' ');
+  cleaned = cleaned.replace(/<\/?[a-zA-Z]+\s*\/?>/g, '');
+  // Collapse multiple spaces
+  cleaned = cleaned.replace(/\s{2,}/g, ' ').trim();
+  return cleaned;
+}
 
 function renderItemCard(item) {
   const wr = formatWinRate(item.win_rate);
@@ -146,7 +156,7 @@ function renderAugmentCard(aug, tier) {
       ${iconSrc ? `<img class="augment-icon" src="${iconSrc}" alt="${escapeHTML(aug.name)}" onerror="this.style.display='none'">` : '<div class="augment-icon"></div>'}
       <div class="augment-info">
         <div class="augment-name">${escapeHTML(aug.name)}</div>
-        <div class="augment-description">${escapeHTML(aug.description || '')}</div>
+        <div class="augment-description">${escapeHTML(cleanDescription(aug.description || ''))}</div>
       </div>
       <div class="augment-stats">
         <span class="${wr.cls}">Global: ${wr.text} WR</span>
@@ -171,20 +181,57 @@ async function loadChampionData(championKey) {
 
     // Update in-game view
     document.getElementById('champion-name').textContent = data.champion.name;
+    if (data.champion.icon_filename) {
+      document.getElementById('champion-splash').src = `/icons/champions/${data.champion.icon_filename}`;
+    }
     document.getElementById('game-status').textContent = 'Browse Mode';
     document.getElementById('game-status').style.color = 'var(--accent-personal)';
 
-    // Render items
-    const itemsHTML = data.items.map(renderItemCard).join('');
-    document.getElementById('items-list').innerHTML = itemsHTML || '<p class="placeholder-message">No items found</p>';
+    // ---- Render prismatic items (left pane) — top 8 by WR ----
+    const prisItems = (data.prismatic_items || []).sort((a,b) => (b.win_rate||0) - (a.win_rate||0)).slice(0, 8);
+    const prisHTML = prisItems.map(renderItemCard).join('');
+    document.getElementById('prismatic-items-list').innerHTML = prisHTML || '<p class="placeholder-message">No prismatic items</p>';
+    document.getElementById('prismatic-count').textContent = prisItems.length ? `(${prisItems.length})` : '';
 
-    // Render augments
-    document.getElementById('augments-prismatic').innerHTML =
-      data.augments.prismatic.map(a => renderAugmentCard(a, 'prismatic')).join('');
-    document.getElementById('augments-gold').innerHTML =
-      data.augments.gold.map(a => renderAugmentCard(a, 'gold')).join('');
-    document.getElementById('augments-silver').innerHTML =
-      data.augments.silver.map(a => renderAugmentCard(a, 'silver')).join('');
+    // ---- Render regular items (middle pane) — boots section, then WR-sorted items ----
+    const BOOT_KEYWORDS = ['boots', 'greaves', 'sandals', 'shoes', 'treads', 'mobility', 'ionian', 'sorcerer', 'plated', 'mercury', 'berserker'];
+    const isBoot = (name) => BOOT_KEYWORDS.some(kw => (name || '').toLowerCase().includes(kw));
+    const allItems = [...(data.items || [])];
+
+    // Split boots from regular items
+    const boots = allItems.filter(i => isBoot(i.name)).sort((a, b) => (b.win_rate || 0) - (a.win_rate || 0)).slice(0, 3);
+    const regular = allItems.filter(i => !isBoot(i.name)).sort((a, b) => (b.win_rate || 0) - (a.win_rate || 0));
+
+    // Render boots
+    const bootsHTML = boots.map(renderItemCard).join('');
+    document.getElementById('boots-list').innerHTML = bootsHTML || '<p class="placeholder-message">No boots data</p>';
+    document.getElementById('boots-count').textContent = boots.length ? `(top ${boots.length})` : '';
+
+    // Render regular items
+    const itemsHTML = regular.map(renderItemCard).join('');
+    document.getElementById('items-list').innerHTML = itemsHTML || '<p class="placeholder-message">No items found</p>';
+    document.getElementById('items-list').classList.add('collapsed');
+    document.getElementById('items-list').classList.remove('expanded');
+    const itemsToggle = document.querySelector('.augment-toggle[data-target="items-list"]');
+    if (itemsToggle) {
+      itemsToggle.innerHTML = `Show all <span class="count">${regular.length}</span> ▾`;
+    }
+
+    // ---- Render augments (right pane) with toggle counts ----
+    const tiers = [
+      { id: 'augments-prismatic', data: data.augments.prismatic, tier: 'prismatic', countId: 'aug-prismatic-count' },
+      { id: 'augments-gold', data: data.augments.gold, tier: 'gold', countId: 'aug-gold-count' },
+      { id: 'augments-silver', data: data.augments.silver, tier: 'silver', countId: 'aug-silver-count' },
+    ];
+    tiers.forEach(t => {
+      document.getElementById(t.id).innerHTML =
+        t.data.map(a => renderAugmentCard(a, t.tier)).join('');
+      document.getElementById(t.id).classList.add('collapsed');
+      document.getElementById(t.id).classList.remove('expanded');
+      document.getElementById(t.countId).textContent = `(${t.data.length})`;
+      const btn = document.querySelector(`.augment-toggle[data-target="${t.id}"]`);
+      if (btn) btn.innerHTML = `Show all <span class="count">${t.data.length}</span> ▾`;
+    });
 
     // Also render in browse view if it's showing
     document.getElementById('browse-items-list').innerHTML = itemsHTML;
@@ -197,7 +244,10 @@ async function loadChampionData(championKey) {
 
     // Update footer
     document.getElementById('stats-freshness').textContent =
-      `📊 Global: Patch ${data.patch} · Updated ${data.last_updated ? new Date(data.last_updated).toLocaleDateString() : '—'}`;
+      `Global: Patch ${data.patch} · Updated ${data.last_updated ? new Date(data.last_updated).toLocaleDateString() : '—'}`;
+
+    // Load recent matches for the match strip
+    loadRecentMatches(championKey, data.champion.icon_filename);
 
   } catch (err) {
     console.error('Failed to load champion data:', err);
@@ -260,7 +310,7 @@ async function loadMatchHistory() {
 
     // Update personal stats in footer
     document.getElementById('personal-stats-summary').textContent =
-      `📋 You: ${data.stats.total_matches} games tracked · ${(data.stats.win_rate * 100).toFixed(1)}% WR`;
+      `You: ${data.stats.total_matches} games tracked · ${(data.stats.win_rate * 100).toFixed(1)}% WR`;
 
   } catch (err) {
     console.error('Failed to load match history:', err);
@@ -487,6 +537,220 @@ async function loadIconCacheStatus() {
 }
 
 // ================================================================
+// Recent Matches Strip + Tooltips
+// ================================================================
+
+async function loadRecentMatches(championKey, championIcon) {
+  try {
+    const data = await fetchJSON(`${API_BASE}/champions/${championKey}/recent-matches?limit=5`);
+    renderRecentMatches(data.matches, championIcon);
+  } catch (err) {
+    console.error('Failed to load recent matches:', err);
+    document.getElementById('recent-matches-strip').style.display = 'none';
+  }
+}
+
+function renderRecentMatches(matches, championIcon) {
+  const strip = document.getElementById('recent-matches-strip');
+  const list = document.getElementById('recent-matches-list');
+
+  if (!matches || matches.length === 0) {
+    strip.style.display = 'none';
+    return;
+  }
+
+  strip.style.display = 'flex';
+  list.innerHTML = matches.map((m, idx) => {
+    const cls = m.win ? 'recent-match-win' : 'recent-match-loss';
+    const timeAgo = formatTimeAgo(m.match_timestamp);
+    const kda = `${m.kills || 0}/${m.deaths || 0}/${m.assists || 0}`;
+    const result = m.win ? 'W' : 'L';
+
+    // Build items preview (small icons)
+    const itemIcons = (m.items || []).slice(0, 6).map(it => {
+      const src = it.icon_filename ? `/icons/items/${it.icon_filename}` : '';
+      return src ? `<img class="mini-item-icon" src="${src}" alt="${escapeHTML(it.name)}" title="${escapeHTML(it.name)}" onerror="this.style.display='none'">` : '';
+    }).join('');
+
+    // Build tooltip HTML
+    const tooltipHTML = `
+      <div class="tooltip-header">
+        <span class="tooltip-result ${m.win ? 'match-win' : 'match-loss'}">${result}</span>
+        <span>Place #${m.placement} · ${kda} KDA</span>
+        <span class="tooltip-time">${timeAgo}</span>
+      </div>
+      ${(m.items || []).length ? `<div class="tooltip-section"><span class="tooltip-label">Items:</span> ${m.items.map(i => escapeHTML(i.name)).join(', ')}</div>` : ''}
+      ${(m.augments || []).length ? `<div class="tooltip-section"><span class="tooltip-label">Augments:</span> ${m.augments.map(a => `<span class="tooltip-augment-${rarityName(a.rarity)}">${escapeHTML(a.name)}</span>`).join(', ')}</div>` : ''}
+    `;
+
+    return `
+      <div class="recent-match-badge ${cls}" 
+           data-tooltip="${escapeHTML(tooltipHTML)}"
+           onmouseenter="showMatchTooltip(event, this)" 
+           onmouseleave="hideMatchTooltip()">
+        <span class="recent-match-result">${result}</span>
+        <span class="recent-match-place">#${m.placement}</span>
+        <div class="recent-match-items">${itemIcons}</div>
+      </div>
+    `;
+  }).join('');
+
+  // Update personal stats summary in footer
+  const totalMatches = matches.length > 0 ? 'multiple' : 'no';
+}
+
+function formatTimeAgo(ts) {
+  if (!ts) return '';
+  const diff = Date.now() - new Date(ts).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+function showMatchTooltip(event, el) {
+  const tooltip = document.getElementById('match-tooltip');
+  tooltip.innerHTML = el.dataset.tooltip;
+  tooltip.style.display = 'block';
+
+  // Position near the element
+  const rect = el.getBoundingClientRect();
+  tooltip.style.left = Math.min(rect.left, window.innerWidth - 320) + 'px';
+  tooltip.style.top = (rect.bottom + 6) + 'px';
+}
+
+function hideMatchTooltip() {
+  document.getElementById('match-tooltip').style.display = 'none';
+}
+
+
+// ================================================================
+// WebSocket — Live Game State
+// ================================================================
+
+let ws = null;
+let wsReconnectTimer = null;
+
+function connectGameStateWebSocket() {
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${protocol}//${location.host}/api/ws/game-state`;
+
+  try {
+    ws = new WebSocket(wsUrl);
+
+    ws.addEventListener('open', () => {
+      console.log('WebSocket connected');
+      updateConnectionStatus(true);
+      // Clear any reconnect timer
+      if (wsReconnectTimer) {
+        clearTimeout(wsReconnectTimer);
+        wsReconnectTimer = null;
+      }
+    });
+
+    ws.addEventListener('message', (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        handleGameEvent(data);
+      } catch (err) {
+        console.error('WebSocket parse error:', err);
+      }
+    });
+
+    ws.addEventListener('close', () => {
+      console.log('WebSocket disconnected');
+      updateConnectionStatus(false);
+      document.getElementById('game-status').textContent = 'No game detected';
+      document.getElementById('game-status').style.color = '';
+      // Auto-reconnect after 5 seconds
+      wsReconnectTimer = setTimeout(connectGameStateWebSocket, 5000);
+    });
+
+    ws.addEventListener('error', (err) => {
+      console.error('WebSocket error:', err);
+    });
+
+  } catch (err) {
+    console.error('WebSocket connection failed:', err);
+    // Retry in 5 seconds
+    wsReconnectTimer = setTimeout(connectGameStateWebSocket, 5000);
+  }
+}
+
+function updateConnectionStatus(connected) {
+  const dot = document.getElementById('connection-status');
+  if (connected) {
+    dot.className = 'status-dot connected';
+    dot.title = 'Connected';
+  } else {
+    dot.className = 'status-dot disconnected';
+    dot.title = 'Disconnected';
+  }
+}
+
+function handleGameEvent(data) {
+  switch (data.type) {
+    case 'STATUS':
+      console.log('Game state:', data.message);
+      break;
+
+    case 'GAME_START':
+      console.log('Game started:', data.champion, data.game_mode);
+      document.getElementById('game-status').textContent =
+        `In Game — ${data.game_mode === 'CHERRY' ? 'Arena' : (data.game_mode || 'Game')}`;
+      document.getElementById('game-status').style.color = 'var(--accent-success)';
+
+      // Auto-load champion data if recognized
+      if (data.champion) {
+        const champ = STATE.champions.find(
+          c => c.name.toLowerCase() === data.champion.toLowerCase()
+        );
+        if (champ) {
+          loadChampionData(champ.key);
+          switchTab('in-game');
+        }
+      }
+      break;
+
+    case 'GAME_END':
+      console.log('Game ended:', data.champion);
+      document.getElementById('game-status').textContent = 'Game ended — refreshing stats…';
+      document.getElementById('game-status').style.color = 'var(--text-secondary)';
+
+      // Refresh match history after a short delay
+      setTimeout(() => {
+        if (document.getElementById('tab-history').classList.contains('active')) {
+          loadMatchHistory();
+        }
+        document.getElementById('game-status').textContent = 'No game detected';
+        document.getElementById('game-status').style.color = '';
+      }, 2000);
+      break;
+
+    case 'CHAMPION_DETECTED':
+      if (data.champion) {
+        const champ = STATE.champions.find(
+          c => c.name.toLowerCase() === data.champion.toLowerCase()
+        );
+        if (champ) {
+          loadChampionData(champ.key);
+        }
+      }
+      break;
+
+    case 'ERROR':
+      console.warn('Game state error:', data.message);
+      break;
+
+    case 'PONG':
+      // Heartbeat response — no action needed
+      break;
+  }
+}
+
+
+// ================================================================
 // Tab Navigation
 // ================================================================
 
@@ -611,16 +875,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ---- Settings: trigger scraper ----
   document.getElementById('trigger-scrape-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('trigger-scrape-btn');
+    btn.disabled = true;
+    btn.textContent = 'Scraping...';
     try {
-      const resp = await fetch(`${API_BASE}/stats/summary`);
+      const resp = await fetch(`${API_BASE}/stats/scrape`, { method: 'POST' });
       if (resp.ok) {
         const data = await resp.json();
-        alert(`Stats refreshed! Current patch: ${data.patch}, Champions: ${data.champions_covered}`);
+        alert(`Scrape started! ${data.message}`);
       } else {
-        alert('Failed to refresh stats. See server logs for details.');
+        alert('Failed to start scrape. See server logs for details.');
       }
     } catch (err) {
       alert('Error connecting to server: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Trigger Stats Scrape';
+    }
+  });
+
+  // ---- Augment toggle (expand/collapse) ----
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.augment-toggle');
+    if (!btn) return;
+    const targetId = btn.dataset.target;
+    const group = document.getElementById(targetId);
+    if (!group) return;
+    const isCollapsed = group.classList.contains('collapsed');
+    if (isCollapsed) {
+      group.classList.remove('collapsed');
+      group.classList.add('expanded');
+      btn.innerHTML = 'Show less ▴';
+    } else {
+      group.classList.add('collapsed');
+      group.classList.remove('expanded');
+      const count = group.querySelectorAll('.augment-card, .item-card').length;
+      btn.innerHTML = `Show all <span class="count">${count}</span> ▾`;
     }
   });
 
@@ -628,6 +918,9 @@ document.addEventListener('DOMContentLoaded', () => {
   loadChampions();
   loadStatsSummary();
   loadIconCacheStatus();
+
+  // ---- WebSocket — live game state ----
+  connectGameStateWebSocket();
 
   // Default: load Lucian if available, then show in-game tab
   setTimeout(() => {

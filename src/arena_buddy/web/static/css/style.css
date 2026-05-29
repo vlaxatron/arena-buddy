@@ -128,12 +128,21 @@ body {
 
 #in-game-columns, #browse-content {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  grid-template-columns: 1fr 1.2fr 1fr;
+  gap: 12px;
 }
 
-/* ---- Items ---- */
-#items-column h3, #browse-items-column h3 { margin-bottom: 8px; color: var(--accent-prismatic); }
+/* Prismatic column (left) */
+#prismatic-column h3 { margin-bottom: 8px; color: var(--accent-prismatic); }
+/* Items column (middle) */
+#items-column h3, #browse-items-column h3 { margin-bottom: 8px; color: var(--text-primary); }
+
+/* Boots section — distinct area at top of middle pane */
+#boots-list {
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
 
 .item-card {
   background: var(--bg-card);
@@ -166,6 +175,35 @@ body {
 
 /* ---- Augments ---- */
 .augment-group { margin-bottom: 8px; }
+.augment-group.collapsed { max-height: 360px; overflow: hidden; position: relative; }
+.augment-group.collapsed::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(transparent, var(--bg-primary));
+  pointer-events: none;
+}
+.augment-group.expanded { max-height: none; }
+.augment-group.expanded::after { display: none; }
+.augment-toggle {
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  margin: 4px 0 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s;
+}
+.augment-toggle:hover { background: var(--bg-hover); color: var(--text-primary); }
+.augment-toggle .count { color: var(--accent-personal); font-weight: 600; }
 .augment-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
@@ -213,10 +251,26 @@ body {
 #augments-column h3 {
   margin: 12px 0 6px 0;
   font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  font-weight: 600;
 }
-#augments-column h3:first-of-type { margin-top: 0; }
+#augments-column h3:nth-of-type(1) { margin-top: 0; color: var(--accent-prismatic); }
+#augments-column h3:nth-of-type(2) { color: var(--accent-gold); }
+#augments-column h3:nth-of-type(3) { color: var(--accent-silver); }
+
+/* Rarity indicator dots (replace emojis) */
+.rarity-dot {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+}
+.rarity-dot.prismatic { background: var(--accent-prismatic); box-shadow: 0 0 6px var(--accent-prismatic); }
+.rarity-dot.gold       { background: var(--accent-gold);       box-shadow: 0 0 6px var(--accent-gold); }
+.rarity-dot.silver     { background: var(--accent-silver);     box-shadow: 0 0 5px var(--accent-silver); }
+.rarity-dot.boots      { background: var(--accent-personal);   box-shadow: 0 0 6px var(--accent-personal); }
 
 /* ---- Settings ---- */
 .settings-group {
@@ -250,6 +304,14 @@ body {
   gap: 8px;
   align-items: center;
 }
+#browse-augments-column h3 {
+  margin: 12px 0 6px 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+#browse-augments-column h3:nth-of-type(1) { margin-top: 0; color: var(--accent-prismatic); }
+#browse-augments-column h3:nth-of-type(2) { color: var(--accent-gold); }
+#browse-augments-column h3:nth-of-type(3) { color: var(--accent-silver); }
 #champ-select {
   background: var(--bg-card);
   color: var(--text-primary);
@@ -353,7 +415,8 @@ body {
 
 /* Placement badges */
 .placement-badge {
-  font-size: 16px;
+  font-size: 14px;
+  font-weight: 700;
   display: inline-block;
   width: 28px;
   height: 28px;
@@ -560,4 +623,140 @@ code {
   border-radius: 3px;
   font-family: 'Cascadia Code', monospace;
   font-size: 12px;
+}
+
+/* ================================================================
+   Recent Matches Strip
+   ================================================================ */
+.recent-matches-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  margin: 6px 0;
+  background: var(--bg-hover);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+.recent-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+.recent-matches-list {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+}
+.recent-match-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.15s;
+  min-width: 100px;
+  position: relative;
+}
+.recent-match-badge:hover {
+  filter: brightness(1.2);
+}
+.recent-match-win {
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+.recent-match-loss {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+.recent-match-result {
+  font-weight: 700;
+  font-size: 13px;
+}
+.recent-match-win .recent-match-result { color: var(--accent-success); }
+.recent-match-loss .recent-match-result { color: var(--accent-danger); }
+.recent-match-place {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+.recent-match-items {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+}
+.mini-item-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  object-fit: contain;
+}
+
+/* ================================================================
+   Match Tooltip (hover popup)
+   ================================================================ */
+.match-tooltip {
+  position: fixed;
+  z-index: 1000;
+  background: #1a1a2e;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  max-width: 320px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  font-size: 12px;
+  line-height: 1.6;
+  pointer-events: none;
+}
+.tooltip-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.tooltip-result {
+  font-weight: 700;
+  font-size: 14px;
+}
+.tooltip-time {
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+.tooltip-section {
+  margin-top: 4px;
+}
+.tooltip-label {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.tooltip-augment-prismatic { color: var(--accent-prismatic); }
+.tooltip-augment-gold { color: var(--accent-gold); }
+.tooltip-augment-silver { color: var(--accent-silver); }
+
+/* ================================================================
+   Personal Stats Highlight (item/augment cards)
+   ================================================================ */
+.item-personal {
+  color: var(--accent-personal);
+  font-weight: 600;
+  font-size: 11px;
+}
+.item-personal::before {
+  content: '◆ ';
+  font-size: 8px;
+}
+.augment-personal {
+  color: var(--accent-personal);
+  font-weight: 600;
+  font-size: 11px;
+}
+.augment-personal::before {
+  content: '◆ ';
+  font-size: 8px;
 }
