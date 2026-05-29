@@ -6,11 +6,22 @@ Starts the FastAPI server and opens the UI in a desktop window
 
 from __future__ import annotations
 
+import os
 import sys
 import threading
 import time
 import webbrowser
 from pathlib import Path
+
+# ---------------------------------------------------------------------------
+# PyInstaller with console=False nulls out stdout/stderr, which crashes
+# uvicorn's logging.  Redirect them to the null device on startup so
+# isatty() and other stdio operations don't blow up.
+# ---------------------------------------------------------------------------
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, "w")
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, "w")
 
 import uvicorn
 
