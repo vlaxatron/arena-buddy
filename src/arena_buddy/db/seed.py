@@ -346,18 +346,21 @@ def _seed_patch(conn: sqlite3.Connection) -> None:
 
 
 def _seed_global_stats(conn: sqlite3.Connection) -> None:
-    conn.executemany(
-        "INSERT OR IGNORE INTO global_item_stats "
-        "(champion_id, item_id, patch_id, win_rate, pick_rate, games_played, rank) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?)",
-        ITEM_STATS,
-    )
-    conn.executemany(
-        "INSERT OR IGNORE INTO global_item_stats "
-        "(champion_id, item_id, patch_id, win_rate, pick_rate, games_played, rank) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?)",
-        PRISMATIC_ITEM_STATS,
-    )
-    # NOTE: Augment seed data removed — Qwik scraper now provides real augment
-    # win rates from LoLalytics. The old fabricated seed augment stats (IDs 101-303)
-    # are no longer inserted.
+    # Temporarily disable FK checks during seed — some items/champions may
+    # not exist yet (fresh install without Data Dragon cache).
+    conn.execute("PRAGMA foreign_keys = OFF")
+    try:
+        conn.executemany(
+            "INSERT OR IGNORE INTO global_item_stats "
+            "(champion_id, item_id, patch_id, win_rate, pick_rate, games_played, rank) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            ITEM_STATS,
+        )
+        conn.executemany(
+            "INSERT OR IGNORE INTO global_item_stats "
+            "(champion_id, item_id, patch_id, win_rate, pick_rate, games_played, rank) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            PRISMATIC_ITEM_STATS,
+        )
+    finally:
+        conn.execute("PRAGMA foreign_keys = ON")
