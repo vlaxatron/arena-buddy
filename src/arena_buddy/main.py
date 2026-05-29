@@ -10,18 +10,56 @@ import os
 import sys
 import threading
 import time
+import traceback
 import webbrowser
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # PyInstaller with console=False nulls out stdout/stderr, which crashes
-# uvicorn's logging.  Redirect them to the null device on startup so
-# isatty() and other stdio operations don't blow up.
+# uvicorn's logging.  Redirect them to a log file so errors are always
+# visible even without a console.
 # ---------------------------------------------------------------------------
-if sys.stderr is None:
-    sys.stderr = open(os.devnull, "w")
-if sys.stdout is None:
-    sys.stdout = open(os.devnull, "w")
+_LOG_PATH: Path | None = None
+
+
+def _init_logging() -> Path:
+    """Set up file-based logging.  Called before any imports that might fail."""
+    from arena_buddy.config import get_app_dir
+
+    log_dir = get_app_dir() / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_path = log_dir / "arena_buddy.log"
+    global _LOG_PATH
+    _LOG_PATH = log_path
+
+    # Open log file for appending
+    log_fh = open(log_path, "a", encoding="utf-8")
+    log_fh.write(f"\n--- Arena Buddy started at {time.strftime('%Y-%m-%d %H:%M:%S')} ---\n")
+    log_fh.flush()
+
+    if sys.stderr is None:
+        sys.stderr = log_fh
+    if sys.stdout is None:
+        sys.stdout = log_fh
+    return log_path
+
+
+def _log_error(msg: str) -> None:
+    """Write an error message to the log file."""
+    try:
+        if _LOG_PATH:
+            with open(_LOG_PATH, "a", encoding="utf-8") as f:
+                f.write(f"ERROR: {msg}\n")
+                f.flush()
+    except Exception:
+        pass
+
+
+# Init logging early
+try:
+    _init_logging()
+except Exception:
+    pass
 
 import uvicorn
 
@@ -31,38 +69,36 @@ from arena_buddy.web.app import create_app
 from arena_buddy.web.server import get_host, get_port
 
 
-def _wait_for_server(url: str, timeout: float = 15.0) -> bool:
-    """Poll the health endpoint until the server responds or timeout.
+def _server_runner(server: uvicorn.Server) -> None:
+    """Run the uvicorn server and log any unhandled exceptions."""
+    try:
+        server.run()
+    except Exception:
+        _log_error(traceback.format_exc())
+        raise
 
-    Returns True if the server came up, False otherwise.
-    """
+
+def _wait_for_server(url: str, timeout: float = 15.0) -> bool:
+    """Poll the health endpoint until the server responds or timeout."""
     import urllib.request
     import urllib.error
 
     health_url = f"{url}/api/health"
     deadline = time.time() + timeout
-    last_error = None
 
     while time.time() < deadline:
         try:
             resp = urllib.request.urlopen(health_url, timeout=2)
             if resp.status == 200:
                 return True
-        except (urllib.error.URLError, ConnectionRefusedError, OSError) as exc:
-            last_error = exc
+        except (urllib.error.URLError, ConnectionRefusedError, OSError):
+            pass
         time.sleep(0.3)
-
-    if last_error:
-        print(f"Server failed to start: {last_error}", file=sys.stderr)
     return False
 
 
 def _open_window(url: str) -> None:
-    """Open the Arena Buddy UI.
-
-    On Windows, attempts to use pywebview for a native window.
-    Falls back to opening the default browser on all platforms.
-    """
+    """Open the Arena Buddy UI (pywebview on Windows, browser fallback)."""
     if sys.platform == "win32":
         try:
             import webview  # type: ignore[import-untyped]
@@ -77,65 +113,79 @@ def _open_window(url: str) -> None:
             webview.start()
             return
         except ImportError:
-            pass  # Fall back to browser
+            pass
         except Exception as exc:
-            print(f"pywebview failed: {exc}", file=sys.stderr)
-            # Fall back to browser
+            _log_error(f"pywebview: {exc}")
 
     # Fallback: open in default browser
-    print(f"Arena Buddy running at {url}")
     webbrowser.open(url)
 
 
 def main() -> None:
     """Run Arena Buddy — start server and open UI window."""
-    db_path = get_db_path()
-    init_database(db_path)
+    try:
+        db_path = get_db_path()
+        init_database(db_path)
+    except Exception:
+        _log_error(f"DB init failed:\n{traceback.format_exc()}")
+        _show_error("Database initialization failed.")
+        sys.exit(1)
 
     host = get_host()
     port = get_port()
     url = f"http://{host}:{port}"
 
-    # Start uvicorn in a background daemon thread
-    app = create_app(db_path=db_path)
+    # Build the app and server
+    try:
+        app = create_app(db_path=db_path)
+    except Exception:
+        _log_error(f"App creation failed:\n{traceback.format_exc()}")
+        _show_error("Failed to create application.")
+        sys.exit(1)
+
     config = uvicorn.Config(
         app=app,
         host=host,
         port=port,
-        log_level="warning",
+        log_level="info",
     )
     server = uvicorn.Server(config)
-    server_thread = threading.Thread(target=server.run, daemon=True)
+    server_thread = threading.Thread(
+        target=_server_runner, args=(server,), daemon=True
+    )
     server_thread.start()
 
-    # Wait for the server to actually be ready (health check loop)
-    print(f"Starting Arena Buddy on {url} ...")
-    if not _wait_for_server(url):
-        print("ERROR: Server did not start. Check logs above.", file=sys.stderr)
-        if sys.platform == "win32":
-            # On Windows with no console, try to show a message
-            try:
-                import ctypes
-                ctypes.windll.user32.MessageBoxW(
-                    0,
-                    "Arena Buddy could not start the server.\n\n"
-                    "Try running from a command prompt to see error details:\n"
-                    "  arena-buddy",
-                    "Arena Buddy - Startup Error",
-                    0x10,  # MB_ICONERROR
-                )
-            except Exception:
-                pass
+    # Wait for the server to be ready
+    if not _wait_for_server(url, timeout=20):
+        _show_error("Server did not start in time.")
         sys.exit(1)
 
     # Open the window
     _open_window(url)
 
-    # Keep the main thread alive while the server runs
+    # Keep alive
     try:
         server_thread.join()
     except KeyboardInterrupt:
-        print("\nArena Buddy shutting down.")
+        pass
+
+
+def _show_error(message: str) -> None:
+    """Show an error to the user (message box on Windows, print otherwise)."""
+    log_path_str = str(_LOG_PATH) if _LOG_PATH else "arena_buddy.log"
+    full_msg = f"{message}\n\nCheck the log file for details:\n{log_path_str}"
+
+    if sys.platform == "win32":
+        try:
+            import ctypes
+
+            ctypes.windll.user32.MessageBoxW(
+                0, full_msg, "Arena Buddy - Error", 0x10,
+            )
+        except Exception:
+            print(full_msg, file=sys.stderr)
+    else:
+        print(full_msg, file=sys.stderr)
 
 
 if __name__ == "__main__":
