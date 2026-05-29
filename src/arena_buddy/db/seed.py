@@ -12,8 +12,11 @@ fallback seed data is applied.
 
 from __future__ import annotations
 
+import random
 import sqlite3
 from pathlib import Path
+
+import httpx
 
 # ---------------------------------------------------------------------------
 # Lucian data
@@ -175,7 +178,6 @@ ITEM_STATS = [
 
 # Augment stats — generated for all 6 champions
 # (champion_id, augment_id, patch_id, rarity, win_rate, pick_rate, games, rank)
-import random
 random.seed(42)
 
 # Base augment stats per augment (augment_id, rarity, base_wr, base_pr, base_games, rank)
@@ -275,6 +277,7 @@ def seed_all(conn: sqlite3.Connection) -> None:
     Args:
         conn: An open :class:`sqlite3.Connection`.
     """
+    _download_data_files()  # Download DDragon JSON if missing (first run)
     _seed_from_files(conn)
     _seed_champions(conn)
     _seed_items(conn)
@@ -294,6 +297,88 @@ _CACHE_DIR = Path.home() / ".cache" / "arena-buddy" / "data"
 _CHAMPIONS_FILE = "champions.json"
 _ITEMS_FILE = "items.json"
 _AUGMENTS_FILE = "augments.json"
+_VERSION_FILE = "ddragon_version.txt"
+
+# Data Dragon URL for fetching the latest version
+_DDRAGON_VERSIONS_URL = "https://ddragon.leagueoflegends.com/api/versions.json"
+
+
+def _download_data_files() -> None:
+    """Download Data Dragon champion/item JSON if they don't exist locally.
+
+    Fetches the latest Data Dragon version, then downloads champion.json
+    and item.json to the cache directory.  Already-cached files are
+    skipped (the version file tracks which patch was downloaded).
+
+    CommunityDragon augment data is NOT downloaded automatically —
+    the hardcoded augment seed suffices, and the Qwik scraper provides
+    real augment stats.
+    """
+    import json as _json
+
+    _CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    version_path = _CACHE_DIR / _VERSION_FILE
+
+    # Check if we already downloaded for the latest version
+    try:
+        resp = httpx.get(_DDRAGON_VERSIONS_URL, timeout=15.0)
+        resp.raise_for_status()
+        versions: list[str] = resp.json()
+        latest = versions[0] if versions else None
+    except Exception:
+        return  # Silently skip — hardcoded seed will be used
+
+    if latest is None:
+        return
+
+    # Skip if already downloaded this version
+    if version_path.exists():
+        cached = version_path.read_text().strip()
+        if cached == latest:
+            return
+
+    # Download champion.json
+    champ_path = _CACHE_DIR / _CHAMPIONS_FILE
+    if not champ_path.exists():
+        try:
+            url = f"https://ddragon.leagueoflegends.com/cdn/{latest}/data/en_US/champion.json"
+            resp = httpx.get(url, timeout=30.0)
+            resp.raise_for_status()
+            champ_path.write_text(resp.text, encoding="utf-8")
+        except Exception:
+            pass  # Silently skip — hardcoded seed will be used
+
+    # Download item.json
+    items_path = _CACHE_DIR / _ITEMS_FILE
+    if not items_path.exists():
+        try:
+            url = f"https://ddragon.leagueoflegends.com/cdn/{latest}/data/en_US/item.json"
+            resp = httpx.get(url, timeout=30.0)
+            resp.raise_for_status()
+            items_path.write_text(resp.text, encoding="utf-8")
+        except Exception:
+            pass
+
+    # Remember which version we downloaded
+    version_path.write_text(latest)
+
+    # Also download the champion summary (used by icon system)
+    try:
+        url = f"https://ddragon.leagueoflegends.com/cdn/{latest}/data/en_US/championFull.json"
+        resp = httpx.get(url, timeout=30.0)
+        resp.raise_for_status()
+        data = _json.loads(resp.text)
+        simplified = {}
+        for key, info in data.get("data", {}).items():
+            simplified[key] = {
+                "id": int(info.get("key", 0)),
+                "name": info.get("name", key),
+                "key": key,
+            }
+        summary_path = _CACHE_DIR / "champion_summary.json"
+        summary_path.write_text(_json.dumps(simplified, indent=2), encoding="utf-8")
+    except Exception:
+        pass
 
 
 def _seed_from_files(conn: sqlite3.Connection) -> None:

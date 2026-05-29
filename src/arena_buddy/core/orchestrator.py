@@ -210,11 +210,14 @@ class GameOrchestrator:
 
             except asyncio.CancelledError:
                 break
-            except Exception:
-                logger.exception("Poll loop error")
+            except Exception as exc:
+                logger.warning("Poll loop error: %s", exc)
                 try:
                     await self._emit(
-                        GameEvent(type=GameEventType.ERROR, message="Polling error")
+                        GameEvent(
+                            type=GameEventType.ERROR,
+                            message="League client not detected — is it running?",
+                        )
                     )
                 except Exception:
                     pass

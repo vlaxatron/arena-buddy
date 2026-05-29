@@ -741,6 +741,9 @@ function handleGameEvent(data) {
 
     case 'ERROR':
       console.warn('Game state error:', data.message);
+      document.getElementById('game-status').textContent = data.message || 'Detection error';
+      document.getElementById('game-status').style.color = 'var(--win-low)';
+      updateConnectionStatus(false);
       break;
 
     case 'PONG':
