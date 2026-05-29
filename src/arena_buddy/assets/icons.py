@@ -18,7 +18,15 @@ from arena_buddy.config import get_cache_dir
 # CDN base URLs
 # ---------------------------------------------------------------------------
 
-_DDRAGON_BASE = "https://ddragon.leagueoflegends.com/cdn/16.11.1"
+def _get_ddragon_base() -> str:
+    """Return the Data Dragon CDN base URL for the current cached version.
+
+    Uses the version cached by :func:`arena_buddy.db.seed._download_data_files`,
+    falling back to the hardcoded default if no cache exists yet.
+    """
+    from arena_buddy.config import get_ddragon_version
+    version = get_ddragon_version()
+    return f"https://ddragon.leagueoflegends.com/cdn/{version}"
 _CDRAGON_AUGMENT_BASE = (
     "https://raw.communitydragon.org/latest/game/assets/ux/cherry/augments/icons"
 )
@@ -73,7 +81,7 @@ def download_champion_icon(champion_key: str, icon_filename: str) -> Path:
     Returns:
         Path to the cached file on disk.
     """
-    url = f"{_DDRAGON_BASE}/img/champion/{icon_filename}"
+    url = f"{_get_ddragon_base()}/img/champion/{icon_filename}"
     local_path = get_cache_dir() / "champions" / icon_filename
     return _download_and_cache(url, local_path)
 
@@ -87,7 +95,7 @@ def download_item_icon(item_id: int) -> Path:
     Returns:
         Path to the cached file on disk.
     """
-    url = f"{_DDRAGON_BASE}/img/item/{item_id}.png"
+    url = f"{_get_ddragon_base()}/img/item/{item_id}.png"
     local_path = get_cache_dir() / "items" / f"{item_id}.png"
     return _download_and_cache(url, local_path)
 

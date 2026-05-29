@@ -14,7 +14,7 @@ from typing import Any, Optional
 import httpx
 
 # ---------------------------------------------------------------------------
-# Known lockfile locations (Windows + macOS)
+# Known lockfile locations (Windows + macOS + Wine/Lutris via league_detector)
 # ---------------------------------------------------------------------------
 
 _KNOWN_LOCKFILE_LOCATIONS = [
@@ -25,17 +25,39 @@ _KNOWN_LOCKFILE_LOCATIONS = [
 ]
 
 
+def _discover_lockfile_locations() -> list[str]:
+    """Build a list of candidate lockfile paths.
+
+    Uses :func:`arena_buddy.core.league_detector.find_league_install`
+    to detect League installations and adds their lockfile paths, then
+    appends the hardcoded fallbacks.
+    """
+    candidates = list(_KNOWN_LOCKFILE_LOCATIONS)
+    try:
+        from arena_buddy.core.league_detector import find_league_install
+        install_path = find_league_install()
+        if install_path is not None:
+            lockfile = install_path / "lockfile"
+            candidates.insert(0, str(lockfile))
+    except Exception:
+        pass
+    return candidates
+
+
 # ---------------------------------------------------------------------------
 # Lockfile helpers
 # ---------------------------------------------------------------------------
 
 def find_lockfile() -> Optional[Path]:
-    """Search known locations for the League lockfile.
+    """Search known locations and detected installs for the League lockfile.
+
+    Uses :func:`_discover_lockfile_locations` which combines hardcoded
+    paths with :func:`arena_buddy.core.league_detector.find_league_install`.
 
     Returns:
         :class:`Path` to the lockfile if found, else ``None``.
     """
-    for location in _KNOWN_LOCKFILE_LOCATIONS:
+    for location in _discover_lockfile_locations():
         path = Path(location)
         if path.exists():
             return path

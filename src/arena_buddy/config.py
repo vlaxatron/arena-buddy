@@ -75,7 +75,7 @@ def get_config_path() -> Path:
     """Return the path to the settings JSON file.
 
     Linux:   ``$XDG_CONFIG_HOME/arena-buddy/settings.json``
-    Windows: ``%APPDATA%\\ArenaBuddy\\config\\settings.json``
+    Windows: ``%APPDATA%\\\\ArenaBuddy\\\\config\\\\settings.json``
     """
     if _is_windows():
         return get_app_dir() / "config" / "settings.json"
@@ -85,6 +85,31 @@ def get_config_path() -> Path:
             return Path(base) / "arena-buddy" / "settings.json"
         home = Path(os.environ.get("HOME", Path.home()))
         return home / ".config" / "arena-buddy" / "settings.json"
+
+
+def get_ddragon_version() -> str:
+    """Return the cached Data Dragon version, falling back to the last known good.
+
+    The version file is written by :func:`arena_buddy.db.seed._download_data_files`
+    during the first-run auto-download.  If the cache hasn't been populated
+    yet (or the file is corrupt), returns a sensible default so icon URLs
+    don't 404.
+
+    Returns:
+        A full patch version string like ``"16.11.1"``.
+    """
+    version_path = get_cache_dir() / "data" / "ddragon_version.txt"
+    try:
+        cached = version_path.read_text().strip()
+        if cached:
+            return cached
+    except (OSError, UnicodeDecodeError):
+        pass
+    # Fallback: last known good version at time of release.
+    # When the auto-download runs, this will be overwritten with the actual
+    # latest version, so this fallback only matters on the very first launch
+    # before the download completes.
+    return "16.11.1"
 
 
 # ---------------------------------------------------------------------------

@@ -602,11 +602,18 @@ def _store_riot_match(
                         (aug_api_name,),
                     ).fetchone()
                     if aug_row is None:
-                        # Insert a placeholder augment
+                        # Insert a placeholder augment with a deterministic ID.
+                        # Use hash() modulo a large range and offset to avoid
+                        # colliding with real augment IDs (which start at 1000).
+                        # Note: hash(str) is stable within a single Python process
+                        # (PYTHONHASHSEED is fixed per-interpreter), but differs
+                        # across processes.  The INSERT OR IGNORE ensures
+                        # idempotency — a real import will overwrite these later.
+                        placeholder_id = (abs(hash(aug_api_name)) % 8000) + 10000
                         conn.execute(
                             "INSERT OR IGNORE INTO augments(id, api_name, name) VALUES (?, ?, ?)",
                             (
-                                abs(hash(aug_api_name)) % 9000 + 1000,
+                                placeholder_id,
                                 aug_api_name,
                                 aug_api_name,
                             ),
