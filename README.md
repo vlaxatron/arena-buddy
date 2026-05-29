@@ -36,6 +36,18 @@ pip install -e ".[dev]"
 arena-buddy
 ```
 
+> **Windows users:** If you get a "Could not open requirements file" error, the brackets got eaten by your shell. Use one of these instead:
+> ```cmd
+> REM Command Prompt:
+> pip install -e ".[dev]"
+> 
+> REM PowerShell:
+> pip install -e '.[dev]'
+> 
+> REM Foolproof (any shell):
+> pip install -r requirements-dev.txt && pip install -e .
+> ```
+
 ### Windows .exe (Coming Soon)
 
 Download `ArenaBuddy.exe` from [Releases](https://github.com/vlaxatron/arena-buddy/releases).
