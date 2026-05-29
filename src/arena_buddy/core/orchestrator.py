@@ -261,6 +261,23 @@ class GameOrchestrator:
                     curr.game_mode,
                 )
 
+        # Champion detected: new champion seen (even with no state change)
+        if curr.champion and curr.status == "in_game":
+            if prev.champion != curr.champion or prev.status == "none":
+                events.append(
+                    GameEvent(
+                        type=GameEventType.CHAMPION_DETECTED,
+                        champion=curr.champion,
+                        game_mode=curr.game_mode,
+                        game_id=curr.game_id,
+                    )
+                )
+                logger.info(
+                    "Champion detected — champion=%s mode=%s",
+                    curr.champion,
+                    curr.game_mode,
+                )
+
         # Game end: went from in_game to none
         if prev.status == "in_game" and curr.status != "in_game":
             if self._is_arena_game(prev):

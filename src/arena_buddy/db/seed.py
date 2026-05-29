@@ -384,20 +384,45 @@ def _download_data_files() -> None:
 def _seed_from_files(conn: sqlite3.Connection) -> None:
     """Import full dataset from cache files if they exist.
 
-    Looks for ``champions.json``, ``items.json``, and ``augments.json`` in
-    ``~/.cache/arena-buddy/data/``.  Missing files are silently skipped
-    (the hardcoded fallback data will still be applied).  Malformed files
-    raise :class:`ValueError`.
+    Looks for ``champions.json``, ``items.json``, and optionally
+    ``augments.json`` in ``~/.cache/arena-buddy/data/``.  Missing files
+    are silently skipped (the hardcoded fallback data will still be
+    applied).  Malformed files raise :class:`ValueError`.
+
+    Champions and items are imported even when ``augments.json`` is
+    absent — the hardcoded augment seed fills the gap.
     """
-    from arena_buddy.db.importer import import_all  # local import
+    from arena_buddy.db.importer import (
+        import_champions,
+        import_items,
+        import_augments,
+        import_all,
+    )
 
     champions_path = _CACHE_DIR / _CHAMPIONS_FILE
     items_path = _CACHE_DIR / _ITEMS_FILE
     augments_path = _CACHE_DIR / _AUGMENTS_FILE
 
-    # Only call the importer if all three files exist
-    if champions_path.exists() and items_path.exists() and augments_path.exists():
+    if not champions_path.exists() or not items_path.exists():
+        return  # Nothing to import — hardcoded seed will be used
+
+    # Import champions and items (always)
+    try:
         import_all(conn, champions_path, items_path, augments_path)
+    except FileNotFoundError:
+        # augments.json is missing — import champions and items separately
+        import_champions(conn, champions_path)
+        import_items(conn, items_path)
+    except Exception:
+        # Other errors (malformed JSON, etc.) — try individual imports
+        try:
+            import_champions(conn, champions_path)
+        except Exception:
+            pass
+        try:
+            import_items(conn, items_path)
+        except Exception:
+            pass
 
 
 def _seed_champions(conn: sqlite3.Connection) -> None:

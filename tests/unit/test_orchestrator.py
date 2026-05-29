@@ -105,9 +105,15 @@ class TestOrchestratorGameDetection:
         curr = GameState(champion="Lucian", game_mode="CHERRY", status="in_game")
 
         events = orch._check_transition(prev, curr)
-        assert len(events) == 1
-        assert events[0].type == GameEventType.GAME_START
-        assert events[0].champion == "Lucian"
+        # GAME_START + CHAMPION_DETECTED both emitted
+        assert len(events) == 2
+        event_types = {e.type for e in events}
+        assert GameEventType.GAME_START in event_types
+        assert GameEventType.CHAMPION_DETECTED in event_types
+        # GAME_START event has champion
+        start_events = [e for e in events if e.type == GameEventType.GAME_START]
+        assert len(start_events) == 1
+        assert start_events[0].champion == "Lucian"
 
     def test_no_event_on_same_state(self):
         """No event emitted when state hasn't changed."""
@@ -137,6 +143,53 @@ class TestOrchestratorGameDetection:
         events = orch._check_transition(prev, curr)
         assert len(events) == 0
         assert orch.last_game_id is None  # not set for non-Arena
+
+    def test_champion_detected_on_new_champion(self):
+        """CHAMPION_DETECTED event emitted when champion changes."""
+        orch = GameOrchestrator(db_path="/tmp/fake.db")
+        prev = GameState(champion="Lucian", game_mode="CHERRY", status="in_game")
+        curr = GameState(champion="Zed", game_mode="CHERRY", status="in_game")
+
+        events = orch._check_transition(prev, curr)
+        detected = [e for e in events if e.type == GameEventType.CHAMPION_DETECTED]
+        assert len(detected) == 1
+        assert detected[0].champion == "Zed"
+
+    def test_champion_detected_on_first_seen(self):
+        """CHAMPION_DETECTED event emitted when champion first appears."""
+        orch = GameOrchestrator(db_path="/tmp/fake.db")
+        prev = GameState(status="none")
+        curr = GameState(champion="Ahri", game_mode="CHERRY", status="in_game")
+
+        events = orch._check_transition(prev, curr)
+        detected = [e for e in events if e.type == GameEventType.CHAMPION_DETECTED]
+        assert len(detected) >= 1
+        assert detected[0].champion == "Ahri"
+
+    def test_no_champion_detected_without_champion(self):
+        """CHAMPION_DETECTED not emitted when no champion in state."""
+        orch = GameOrchestrator(db_path="/tmp/fake.db")
+        prev = GameState(status="in_game")  # no champion
+        curr = GameState(status="in_game")  # still no champion
+
+        events = orch._check_transition(prev, curr)
+        detected = [e for e in events if e.type == GameEventType.CHAMPION_DETECTED]
+        assert len(detected) == 0
+
+    def test_champion_detected_event_alongside_game_start(self):
+        """Both GAME_START and CHAMPION_DETECTED emitted on transition to in_game."""
+        orch = GameOrchestrator(db_path="/tmp/fake.db")
+        prev = GameState(status="none")
+        curr = GameState(champion="Viego", game_mode="CHERRY", status="in_game")
+
+        events = orch._check_transition(prev, curr)
+        event_types = {e.type for e in events}
+        assert GameEventType.GAME_START in event_types
+        assert GameEventType.CHAMPION_DETECTED in event_types
+        # Verify champion matches in both events
+        for e in events:
+            if e.type == GameEventType.CHAMPION_DETECTED:
+                assert e.champion == "Viego"
 
 
 # ---------------------------------------------------------------------------
