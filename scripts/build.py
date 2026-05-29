@@ -65,7 +65,7 @@ def cmd_package() -> None:
 
     print("=== Building ArenaBuddy.exe ===")
     run([
-        "pyinstaller",
+        sys.executable, "-m", "PyInstaller",
         "--clean",
         "--noconfirm",
         "arena_buddy.spec",
