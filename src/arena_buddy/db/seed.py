@@ -346,21 +346,32 @@ def _seed_patch(conn: sqlite3.Connection) -> None:
 
 
 def _seed_global_stats(conn: sqlite3.Connection) -> None:
-    # Temporarily disable FK checks during seed — some items/champions may
-    # not exist yet (fresh install without Data Dragon cache).
+    """Insert hardcoded global stats (safe to fail — real data comes from scraper).
+
+    On a fresh install without Data Dragon cache, some referenced items
+    or champions may not exist yet.  FK violations are caught and skipped
+    so the app can still start.
+    """
     conn.execute("PRAGMA foreign_keys = OFF")
     try:
-        conn.executemany(
-            "INSERT OR IGNORE INTO global_item_stats "
-            "(champion_id, item_id, patch_id, win_rate, pick_rate, games_played, rank) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
-            ITEM_STATS,
-        )
-        conn.executemany(
-            "INSERT OR IGNORE INTO global_item_stats "
-            "(champion_id, item_id, patch_id, win_rate, pick_rate, games_played, rank) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
-            PRISMATIC_ITEM_STATS,
-        )
+        try:
+            conn.executemany(
+                "INSERT OR IGNORE INTO global_item_stats "
+                "(champion_id, item_id, patch_id, win_rate, pick_rate, games_played, rank) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                ITEM_STATS,
+            )
+        except sqlite3.IntegrityError:
+            pass  # Missing referenced items — scraper will fill real data later
+
+        try:
+            conn.executemany(
+                "INSERT OR IGNORE INTO global_item_stats "
+                "(champion_id, item_id, patch_id, win_rate, pick_rate, games_played, rank) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                PRISMATIC_ITEM_STATS,
+            )
+        except sqlite3.IntegrityError:
+            pass
     finally:
         conn.execute("PRAGMA foreign_keys = ON")
