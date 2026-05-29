@@ -4,8 +4,6 @@
 Builds a single .exe that bundles Python, FastAPI, and the web frontend.
 """
 
-from PyInstaller.utils.hooks import collect_data_files, collect_submodules
-
 # ---------------------------------------------------------------------------
 # Analysis
 # ---------------------------------------------------------------------------
@@ -79,19 +77,6 @@ a = Analysis(
     cipher=None,
     noarchive=False,
 )
-
-# ---------------------------------------------------------------------------
-# Additional data from package metadata
-# ---------------------------------------------------------------------------
-
-# Collect data files from installed packages
-for pkg in ["fastapi"]:
-    try:
-        datas = collect_data_files(pkg)
-        if datas:
-            a.datas += datas
-    except Exception:
-        pass
 
 # ---------------------------------------------------------------------------
 # PYZ (compiled .pyz archive)
