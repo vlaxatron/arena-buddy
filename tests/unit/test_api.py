@@ -5,10 +5,11 @@ from fastapi.testclient import TestClient
 
 
 @pytest.fixture
-def client(temp_db_path):
+def client(temp_db_path, tmp_path):
     """TestClient connected to the FastAPI app with a seeded test database."""
     from arena_buddy.web.app import create_app
-    app = create_app(db_path=temp_db_path)
+    settings_path = tmp_path / "settings.json"
+    app = create_app(db_path=temp_db_path, settings_path=settings_path)
     with TestClient(app) as c:
         yield c
 
@@ -309,3 +310,77 @@ class TestIconServing:
         # The response should include the champion data even if
         # icon downloads fail (graceful degradation)
         assert response.json()["champion"]["key"] == "Lucian"
+
+
+# ---------------------------------------------------------------------------
+# First-Run Wizard
+# ---------------------------------------------------------------------------
+
+class TestWizardEndpoints:
+    """GET/POST /api/wizard/* endpoints."""
+
+    def test_wizard_state_returns_defaults(self, client):
+        """GET /api/wizard/state returns defaults when no settings exist."""
+        response = client.get("/api/wizard/state")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["completed"] is False
+        assert data["step"] == 0
+
+    def test_wizard_state_reflects_completion(self, client):
+        """POST /api/wizard/complete marks wizard done, GET reflects it."""
+        # Mark complete
+        resp = client.post("/api/wizard/complete")
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "ok"
+
+        # Verify state reflects completion
+        state = client.get("/api/wizard/state").json()
+        assert state["completed"] is True
+
+    def test_wizard_step_progression(self, client):
+        """POST /api/wizard/step updates the current step."""
+        # Set step to 1
+        resp = client.post("/api/wizard/step", json={"step": 1})
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "ok"
+        assert resp.json()["step"] == 1
+
+        # Verify state
+        state = client.get("/api/wizard/state").json()
+        assert state["step"] == 1
+
+        # Set step to 3
+        client.post("/api/wizard/step", json={"step": 3})
+        state = client.get("/api/wizard/state").json()
+        assert state["step"] == 3
+
+    def test_wizard_reset(self, client):
+        """POST /api/wizard/reset clears wizard state."""
+        # First set some state
+        client.post("/api/wizard/step", json={"step": 2})
+        client.post("/api/wizard/complete")
+
+        # Reset
+        resp = client.post("/api/wizard/reset")
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "ok"
+
+        # Verify defaults returned
+        state = client.get("/api/wizard/state").json()
+        assert state["completed"] is False
+        assert state["step"] == 0
+
+    def test_wizard_league_detection(self, client):
+        """GET /api/wizard/detect-league returns league detection result."""
+        response = client.get("/api/wizard/detect-league")
+        assert response.status_code == 200
+        data = response.json()
+        assert "found" in data
+        assert "path" in data
+        # On a test machine without League, found should be False
+        assert isinstance(data["found"], bool)
+        if data["found"]:
+            assert data["path"] is not None
+        else:
+            assert data["path"] is None

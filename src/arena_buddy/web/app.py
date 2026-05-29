@@ -115,11 +115,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         pass
 
 
-def create_app(db_path: Path | None = None) -> FastAPI:
+def create_app(
+    db_path: Path | None = None,
+    settings_path: Path | None = None,
+) -> FastAPI:
     """Create and configure the FastAPI application.
 
     Args:
         db_path: Path to SQLite database.  If None, uses default from config.
+        settings_path: Path to settings.json.  If None, uses default from config.
 
     Returns:
         A fully configured FastAPI app ready for ``uvicorn.run()``.
@@ -140,6 +144,10 @@ def create_app(db_path: Path | None = None) -> FastAPI:
 
     # Store db_path in app state for routes to access
     app.state.db_path = Path(db_path)
+
+    # Store settings_path for wizard (test isolation)
+    if settings_path is not None:
+        app.state.settings_path = Path(settings_path)
 
     # Mount static files (CSS, JS, images)
     if static_dir.exists():

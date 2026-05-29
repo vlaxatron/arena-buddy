@@ -182,5 +182,79 @@
   </footer>
 
   <script src="/static/js/app.js"></script>
+
+  <!-- ================================================================
+       First-Run Wizard Overlay
+       ================================================================ -->
+  <div id="wizard-overlay" class="wizard-overlay" style="display:none">
+    <div class="wizard-modal">
+      <div class="wizard-header">
+        <h2 id="wizard-title">Welcome to Arena Buddy!</h2>
+        <div class="wizard-steps">
+          <span class="wizard-step-dot active" data-step="0"></span>
+          <span class="wizard-step-dot" data-step="1"></span>
+          <span class="wizard-step-dot" data-step="2"></span>
+          <span class="wizard-step-dot" data-step="3"></span>
+        </div>
+      </div>
+      <div class="wizard-body">
+        <!-- Step 0: Welcome -->
+        <div id="wizard-step-0" class="wizard-step active">
+          <p>Arena Buddy is your companion for League of Legends Arena mode.</p>
+          <p>Get item recommendations, augment suggestions, and track your match history — all in one place.</p>
+          <ul>
+            <li>View optimal item builds and augment choices</li>
+            <li>Track your personal win rates</li>
+            <li>Detect live games for real-time suggestions</li>
+          </ul>
+          <p class="wizard-hint">Let's get you set up in just a few steps.</p>
+        </div>
+
+        <!-- Step 1: League Detection -->
+        <div id="wizard-step-1" class="wizard-step">
+          <p>We'll automatically detect your League of Legends installation.</p>
+          <div id="wizard-league-result" class="wizard-league-result" style="display:none">
+            <div id="wizard-league-found" style="display:none">
+              <p class="wizard-success">✓ League of Legends found!</p>
+              <p class="wizard-path">Path: <code id="wizard-league-path">—</code></p>
+            </div>
+            <div id="wizard-league-not-found" style="display:none">
+              <p class="wizard-warning">League of Legends not automatically detected.</p>
+              <p>You can enter the path manually, or skip this step.</p>
+              <label for="wizard-manual-path">Manual path:</label>
+              <input type="text" id="wizard-manual-path" placeholder="e.g., C:/Riot Games/League of Legends" class="wizard-input">
+            </div>
+          </div>
+          <div id="wizard-league-detecting" class="wizard-detecting">
+            <div class="wizard-spinner"></div>
+            <p>Detecting League of Legends installation...</p>
+          </div>
+        </div>
+
+        <!-- Step 2: Data Download -->
+        <div id="wizard-step-2" class="wizard-step">
+          <p>Downloading champion data for accurate recommendations.</p>
+          <div class="wizard-progress-bar">
+            <div id="wizard-progress-fill" class="wizard-progress-fill" style="width:0%"></div>
+          </div>
+          <p id="wizard-progress-text" class="wizard-progress-text">Starting...</p>
+        </div>
+
+        <!-- Step 3: Finish -->
+        <div id="wizard-step-3" class="wizard-step">
+          <p class="wizard-success" style="font-size:18px">🎉 You're all set!</p>
+          <p>Arena Buddy is ready to use. Enjoy your games!</p>
+          <p class="wizard-hint">Tip: Press <kbd>Ctrl+Shift+A</kbd> to toggle the overlay. You can always access settings from the Settings tab.</p>
+        </div>
+      </div>
+      <div class="wizard-footer">
+        <button id="wizard-back-btn" class="btn wizard-btn" style="display:none">← Back</button>
+        <span class="wizard-spacer"></span>
+        <button id="wizard-next-btn" class="btn wizard-btn wizard-btn-primary">Next →</button>
+        <button id="wizard-finish-btn" class="btn wizard-btn wizard-btn-primary" style="display:none">Start Using Arena Buddy</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>

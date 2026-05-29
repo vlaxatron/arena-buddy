@@ -928,4 +928,191 @@ document.addEventListener('DOMContentLoaded', () => {
       loadChampionData(STATE.champions[0].key);
     }
   }, 100);
+
+  // ---- First-Run Wizard ----
+  initWizard();
+});
+
+
+// ================================================================
+// First-Run Wizard
+// ================================================================
+
+const WIZARD = {
+  currentStep: 0,
+  leagueFound: false,
+  leaguePath: null,
+};
+
+const WIZARD_TITLES = [
+  'Welcome to Arena Buddy!',
+  'League of Legends Detection',
+  'Downloading Champion Data',
+  "You're All Set!",
+];
+
+async function initWizard() {
+  try {
+    const state = await fetchJSON(`${API_BASE}/wizard/state`);
+    if (state.completed) return; // Wizard already done
+
+    WIZARD.currentStep = state.step || 0;
+    showWizard();
+    renderWizardStep();
+  } catch (err) {
+    console.error('Wizard init failed:', err);
+  }
+}
+
+function showWizard() {
+  document.getElementById('wizard-overlay').style.display = 'flex';
+}
+
+function hideWizard() {
+  document.getElementById('wizard-overlay').style.display = 'none';
+}
+
+function renderWizardStep() {
+  const step = WIZARD.currentStep;
+
+  // Update step dots
+  document.querySelectorAll('.wizard-step-dot').forEach((dot, i) => {
+    dot.classList.remove('active', 'done');
+    if (i < step) dot.classList.add('done');
+    else if (i === step) dot.classList.add('active');
+  });
+
+  // Update step content visibility
+  document.querySelectorAll('.wizard-step').forEach(el => el.classList.remove('active'));
+  const stepEl = document.getElementById(`wizard-step-${step}`);
+  if (stepEl) stepEl.classList.add('active');
+
+  // Update title
+  document.getElementById('wizard-title').textContent = WIZARD_TITLES[step] || '';
+
+  // Update buttons
+  const backBtn = document.getElementById('wizard-back-btn');
+  const nextBtn = document.getElementById('wizard-next-btn');
+  const finishBtn = document.getElementById('wizard-finish-btn');
+
+  backBtn.style.display = step > 0 ? '' : 'none';
+  nextBtn.style.display = step < 3 ? '' : 'none';
+  finishBtn.style.display = step === 3 ? '' : 'none';
+
+  // Special handling per step
+  if (step === 1) {
+    detectLeague();
+  } else if (step === 2) {
+    startDataDownload();
+  }
+
+  // Save step to backend
+  fetch(`${API_BASE}/wizard/step`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ step }),
+  }).catch(() => {});
+}
+
+async function detectLeague() {
+  const detecting = document.getElementById('wizard-league-detecting');
+  const result = document.getElementById('wizard-league-result');
+  const foundDiv = document.getElementById('wizard-league-found');
+  const notFoundDiv = document.getElementById('wizard-league-not-found');
+
+  detecting.style.display = 'flex';
+  result.style.display = 'none';
+
+  try {
+    const data = await fetchJSON(`${API_BASE}/wizard/detect-league`);
+    WIZARD.leagueFound = data.found;
+    WIZARD.leaguePath = data.path;
+
+    detecting.style.display = 'none';
+    result.style.display = 'block';
+
+    if (data.found) {
+      foundDiv.style.display = 'block';
+      notFoundDiv.style.display = 'none';
+      document.getElementById('wizard-league-path').textContent = data.path;
+    } else {
+      foundDiv.style.display = 'none';
+      notFoundDiv.style.display = 'block';
+    }
+  } catch (err) {
+    console.error('League detection failed:', err);
+    detecting.style.display = 'none';
+    result.style.display = 'block';
+    foundDiv.style.display = 'none';
+    notFoundDiv.style.display = 'block';
+  }
+}
+
+async function startDataDownload() {
+  const progressFill = document.getElementById('wizard-progress-fill');
+  const progressText = document.getElementById('wizard-progress-text');
+
+  progressFill.style.width = '10%';
+  progressText.textContent = 'Loading champions...';
+
+  try {
+    // Trigger champion data load (this also populates STATE.champions)
+    const champs = await fetchJSON(`${API_BASE}/champions`);
+    progressFill.style.width = '40%';
+    progressText.textContent = `Found ${champs.length} champions`;
+
+    // Load the first champion's data to verify
+    if (champs.length > 0) {
+      await fetchJSON(`${API_BASE}/champions/${champs[0].key}/items`);
+    }
+    progressFill.style.width = '75%';
+    progressText.textContent = 'Loading champion stats...';
+
+    // Load stats summary
+    await fetchJSON(`${API_BASE}/stats/summary`);
+    progressFill.style.width = '100%';
+    progressText.textContent = 'Data loaded successfully! ✓';
+  } catch (err) {
+    console.error('Data download failed:', err);
+    progressFill.style.width = '100%';
+    progressText.textContent = 'Data loaded (some items may be unavailable)';
+  }
+}
+
+function wizardNext() {
+  if (WIZARD.currentStep < 3) {
+    WIZARD.currentStep++;
+    renderWizardStep();
+  }
+}
+
+function wizardBack() {
+  if (WIZARD.currentStep > 0) {
+    WIZARD.currentStep--;
+    renderWizardStep();
+  }
+}
+
+async function wizardFinish() {
+  try {
+    await fetch(`${API_BASE}/wizard/complete`, { method: 'POST' });
+  } catch (err) {
+    console.error('Wizard complete failed:', err);
+  }
+  hideWizard();
+}
+
+// Attach wizard button handlers
+document.addEventListener('DOMContentLoaded', () => {
+  // These need to run after the main DOMContentLoaded init
+  // so we use a separate listener that fires after
+  setTimeout(() => {
+    const nextBtn = document.getElementById('wizard-next-btn');
+    const backBtn = document.getElementById('wizard-back-btn');
+    const finishBtn = document.getElementById('wizard-finish-btn');
+
+    if (nextBtn) nextBtn.addEventListener('click', wizardNext);
+    if (backBtn) backBtn.addEventListener('click', wizardBack);
+    if (finishBtn) finishBtn.addEventListener('click', wizardFinish);
+  }, 0);
 });

@@ -548,3 +548,97 @@ async def check_patch(request: Request):
         }
     finally:
         conn.close()
+
+
+# ---------------------------------------------------------------------------
+# First-Run Wizard
+# ---------------------------------------------------------------------------
+
+def _get_settings_path(request: Request) -> Path:
+    """Get settings path from app state, falling back to config default."""
+    if hasattr(request.app.state, "settings_path"):
+        return request.app.state.settings_path
+    from arena_buddy.config import get_config_path
+    return get_config_path()
+
+
+def _load_wizard_settings(settings_path: Path) -> dict:
+    """Load settings from the given path, returning merged defaults."""
+    if settings_path.exists():
+        try:
+            with open(settings_path, "r", encoding="utf-8") as fh:
+                stored = json.load(fh)
+        except (json.JSONDecodeError, OSError):
+            stored = {}
+    else:
+        stored = {}
+    wizard_defaults = {"completed": False, "step": 0, "league_found": False, "league_path": None}
+    wizard = {**wizard_defaults, **stored.get("wizard", {})}
+    return wizard
+
+
+def _save_wizard_settings(settings_path: Path, wizard: dict) -> None:
+    """Save wizard settings to the given path."""
+    settings_path.parent.mkdir(parents=True, exist_ok=True)
+    # Read existing settings if any
+    existing = {}
+    if settings_path.exists():
+        try:
+            with open(settings_path, "r", encoding="utf-8") as fh:
+                existing = json.load(fh)
+        except (json.JSONDecodeError, OSError):
+            existing = {}
+    existing["wizard"] = wizard
+    with open(settings_path, "w", encoding="utf-8") as fh:
+        json.dump(existing, fh, indent=2)
+
+
+@router.get("/wizard/state")
+async def wizard_state(request: Request):
+    """Return current wizard state."""
+    settings_path = _get_settings_path(request)
+    wizard = _load_wizard_settings(settings_path)
+    return wizard
+
+
+@router.post("/wizard/step")
+async def wizard_set_step(request: Request):
+    """Update the current wizard step."""
+    body = await request.json()
+    step = body.get("step", 0)
+    settings_path = _get_settings_path(request)
+    wizard = _load_wizard_settings(settings_path)
+    wizard["step"] = step
+    _save_wizard_settings(settings_path, wizard)
+    return {"status": "ok", "step": step}
+
+
+@router.post("/wizard/complete")
+async def wizard_complete(request: Request):
+    """Mark the wizard as completed."""
+    settings_path = _get_settings_path(request)
+    wizard = _load_wizard_settings(settings_path)
+    wizard["completed"] = True
+    _save_wizard_settings(settings_path, wizard)
+    return {"status": "ok"}
+
+
+@router.post("/wizard/reset")
+async def wizard_reset(request: Request):
+    """Reset wizard state to defaults."""
+    settings_path = _get_settings_path(request)
+    wizard = {"completed": False, "step": 0, "league_found": False, "league_path": None}
+    _save_wizard_settings(settings_path, wizard)
+    return {"status": "ok"}
+
+
+@router.get("/wizard/detect-league")
+async def wizard_detect_league():
+    """Detect League of Legends installation path."""
+    from arena_buddy.core.league_detector import find_league_install
+    league_path = find_league_install()
+    found = league_path is not None
+    return {
+        "found": found,
+        "path": str(league_path) if league_path else None,
+    }
