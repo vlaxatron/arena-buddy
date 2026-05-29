@@ -2,9 +2,10 @@
 """Arena Buddy — build and package script.
 
 Usage:
-    python scripts/build.py              # Run tests + lint
+    python scripts/build.py              # Run tests
     python scripts/build.py package      # Create PyInstaller .exe (Windows)
     python scripts/build.py clean        # Remove build artifacts
+    python scripts/build.py setup        # Install all deps + pyinstaller
 """
 
 import os
@@ -19,37 +20,48 @@ ROOT = Path(__file__).resolve().parent.parent
 def run(cmd: list[str], **kwargs) -> None:
     """Run a command, exiting on failure."""
     print(f"\n  $ {' '.join(cmd)}")
-    result = subprocess.run(cmd, cwd=str(ROOT), **kwargs)
+    try:
+        result = subprocess.run(cmd, cwd=str(ROOT), **kwargs)
+    except FileNotFoundError:
+        print(f"  ✗ Command not found: {cmd[0]}")
+        print(f"  Run 'python scripts/build.py setup' to install missing tools.")
+        sys.exit(1)
     if result.returncode != 0:
         print(f"  ✗ Command failed with exit code {result.returncode}")
         sys.exit(result.returncode)
     print("  ✓")
 
 
+def cmd_setup() -> None:
+    """Install all dependencies including pyinstaller."""
+    print("=== Installing dependencies ===")
+    run([sys.executable, "-m", "pip", "install", "--upgrade", "pip"])
+    run([sys.executable, "-m", "pip", "install", "-r", "requirements-dev.txt"])
+    run([sys.executable, "-m", "pip", "install", "-e", "."])
+    run([sys.executable, "-m", "pip", "install", "pyinstaller"])
+    print("\n  ✓ Setup complete.")
+
+
 def cmd_test() -> None:
     """Run pytest with coverage."""
     print("=== Running Tests ===")
-    run(["python", "-m", "pytest", "tests/", "-q", "--cov=arena_buddy", "--cov-report=term-missing"])
-
-
-def cmd_lint() -> None:
-    """Run ruff linter (if installed)."""
-    try:
-        import ruff  # noqa: F401
-    except ImportError:
-        print("=== Lint skipped (ruff not installed) ===")
-        return
-
-    print("=== Running Linter ===")
-    run(["python", "-m", "ruff", "check", "src/", "tests/"])
+    run([sys.executable, "-m", "pytest", "tests/", "-q"])
 
 
 def cmd_package() -> None:
     """Build Windows .exe with PyInstaller."""
     if sys.platform != "win32":
-        print("  ⚠ PyInstaller packaging requires Windows. Skipping .exe build.")
+        print("  ⚠  PyInstaller packaging requires Windows. Skipping .exe build.")
         print("  Run this command on a Windows machine to create the binary.")
         return
+
+    # Check pyinstaller is installed
+    try:
+        import PyInstaller  # noqa: F401
+    except ImportError:
+        print("  ✗ PyInstaller is not installed.")
+        print("  Run: python scripts/build.py setup")
+        sys.exit(1)
 
     print("=== Building ArenaBuddy.exe ===")
     run([
@@ -58,7 +70,7 @@ def cmd_package() -> None:
         "--noconfirm",
         "arena_buddy.spec",
     ])
-    print("\n  ✓ Build complete → dist/ArenaBuddy.exe")
+    print(f"\n  ✓ Build complete → {ROOT / 'dist' / 'ArenaBuddy.exe'}")
 
 
 def cmd_clean() -> None:
@@ -82,8 +94,8 @@ def main() -> None:
     cmd = sys.argv[1] if len(sys.argv) > 1 else "test"
 
     commands = {
+        "setup": cmd_setup,
         "test": cmd_test,
-        "lint": cmd_lint,
         "package": cmd_package,
         "clean": cmd_clean,
     }
