@@ -19,7 +19,16 @@ from pathlib import Path
 # Lucian data
 # ---------------------------------------------------------------------------
 
-LUCIAN = (236, "Lucian", "Lucian", "Lucian.png")
+CHAMPIONS = [
+    (236, "Lucian", "Lucian", "Lucian.png"),
+    (238, "Zed", "Zed", "Zed.png"),
+    (875, "Sett", "Sett", "Sett.png"),
+    (266, "Aatrox", "Aatrox", "Aatrox.png"),
+    (157, "Yasuo", "Yasuo", "Yasuo.png"),
+    (145, "Kaisa", "Kai'Sa", "Kaisa.png"),
+]
+
+LUCIAN = CHAMPIONS[0]  # Keep for backward compat
 
 ITEMS = [
     (6672, "Kraken Slayer", "6672.png", 3100, "Every third attack deals bonus magic damage."),
@@ -30,6 +39,32 @@ ITEMS = [
     (3026, "Guardian Angel", "3026.png", 3200, "Revive on death."),
     (3006, "Berserker's Greaves", "3006.png", 1100, "Attack speed boots."),
     (3139, "Mercurial Scimitar", "3139.png", 3000, "CC removal active + crit."),
+    # -- Additional items referenced by global stats (full dataset fallback) --
+    (3074, "Ravenous Hydra", "3074.png", 3300, "AoE damage on attacks and active crescent."),
+    (6692, "Eclipse", "6692.png", 2800, "Bonus damage and shield on hitting enemy."),
+    (6333, "Death's Dance", "6333.png", 3200, "Stores damage taken and heals on takedown."),
+    (3071, "Black Cleaver", "3071.png", 3000, "Shreds enemy armor on physical damage."),
+    (3156, "Maw of Malmortius", "3156.png", 2800, "Magic damage shield when low on health."),
+    (6694, "Serylda's Grudge", "6694.png", 3200, "Armor penetration and slow on abilities."),
+    (3742, "Dead Man's Plate", "3742.png", 2900, "Builds momentum for bonus move speed and damage."),
+    (3193, "Gargoyle Stoneplate", "3193.png", 3200, "Massive shield in teamfights."),
+    (3047, "Plated Steelcaps", "3047.png", 1000, "Reduces incoming basic attack damage."),
+    (3111, "Mercury's Treads", "3111.png", 1100, "Tenacity and magic resist."),
+    (3009, "Boots of Swiftness", "3009.png", 900, "Slow resistance and move speed."),
+    (3046, "Phantom Dancer", "3046.png", 2800, "Ghosting and attack speed."),
+    (3153, "Blade of the Ruined King", "3153.png", 3200, "% current health damage on-hit."),
+    (3085, "Runaan's Hurricane", "3085.png", 2800, "Fires bolts at nearby enemies."),
+    (3124, "Guinsoo's Rageblade", "3124.png", 3000, "Converts crit to on-hit damage."),
+    (3020, "Sorcerer's Shoes", "3020.png", 1100, "Magic penetration."),
+    # -- Prismatic / Arena-only items --
+    (447103, "Hemomancer's Helm", "447103.png", 0, "Arena prismatic item."),
+    (446632, "Divine Sunderer", "446632.png", 0, "Arena prismatic item."),
+    (223069, "Void Immolation", "223069.png", 0, "Arena prismatic item."),
+    (228006, "Sanguine Blade", "228006.png", 0, "Arena prismatic item."),
+    (447113, "Detonation Orb", "447113.png", 0, "Arena prismatic item."),
+    (446656, "Everfrost", "446656.png", 0, "Arena prismatic item."),
+    (447114, "Reverberation", "447114.png", 0, "Arena prismatic item."),
+    (447121, "Twilight's Edge", "447121.png", 0, "Arena prismatic item."),
 ]
 
 AUGMENTS = [
@@ -281,9 +316,9 @@ def _seed_from_files(conn: sqlite3.Connection) -> None:
 
 
 def _seed_champions(conn: sqlite3.Connection) -> None:
-    conn.execute(
+    conn.executemany(
         "INSERT OR IGNORE INTO champions (id, key, name, icon_filename) VALUES (?, ?, ?, ?)",
-        LUCIAN,
+        CHAMPIONS,
     )
 
 
