@@ -384,3 +384,25 @@ class TestWizardEndpoints:
             assert data["path"] is not None
         else:
             assert data["path"] is None
+
+
+# ---------------------------------------------------------------------------
+# Riot Sync Endpoint
+# ---------------------------------------------------------------------------
+
+class TestSyncRiotEndpoint:
+    """POST /api/stats/sync-riot."""
+
+    def test_sync_riot_requires_config(self, client):
+        """Returns 400 when no RIOT_API_KEY or summoner config is set."""
+        response = client.post("/api/stats/sync-riot")
+        assert response.status_code == 400
+        data = response.json()
+        assert "detail" in data
+        assert "RIOT_API_KEY" in data["detail"] or "summoner" in data["detail"].lower()
+
+    def test_sync_riot_requires_api_key(self, client):
+        """Returns 400 when RIOT_API_KEY is missing."""
+        response = client.post("/api/stats/sync-riot", json={"summoner_name": "Test", "tag_line": "NA1"})
+        assert response.status_code == 400
+        assert "RIOT_API_KEY" in response.json()["detail"]

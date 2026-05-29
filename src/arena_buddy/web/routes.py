@@ -551,6 +551,132 @@ async def check_patch(request: Request):
 
 
 # ---------------------------------------------------------------------------
+# Riot API Sync — Import personal match history
+# ---------------------------------------------------------------------------
+
+@router.post("/stats/sync-riot")
+async def sync_riot_matches(request: Request):
+    """Fetch Arena match history from Riot API and store new matches.
+
+    Requires ``RIOT_API_KEY`` environment variable or in settings, plus
+    ``summoner_name`` and ``tag_line`` in the request body or settings.
+
+    Request body (JSON, optional):
+        ``{"summoner_name": "PlayerName", "tag_line": "NA1", "region": "americas", "count": 20}``
+
+    Returns:
+        ``{"new_matches": int, "total_fetched": int, "message": str}``
+    """
+    import os
+
+    # Get API key from env or settings
+    api_key = os.environ.get("RIOT_API_KEY", "")
+    if not api_key:
+        # Try settings file
+        settings_path = _get_settings_path(request)
+        if settings_path.exists():
+            try:
+                with open(settings_path, "r", encoding="utf-8") as fh:
+                    stored = json.load(fh)
+                api_key = stored.get("riot_api_key", "")
+            except (json.JSONDecodeError, OSError):
+                pass
+
+    if not api_key:
+        raise HTTPException(
+            status_code=400,
+            detail="RIOT_API_KEY not configured. Set the environment variable or add 'riot_api_key' to settings.",
+        )
+
+    # Get summoner config
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        pass
+
+    summoner_name = body.get("summoner_name", "")
+    tag_line = body.get("tag_line", "")
+    region = body.get("region", "americas")
+    count = min(body.get("count", 20), 100)
+    champion_key = body.get("champion_key")
+
+    # Try loading from settings if not in request
+    if not summoner_name or not tag_line:
+        settings_path = _get_settings_path(request)
+        if settings_path.exists():
+            try:
+                with open(settings_path, "r", encoding="utf-8") as fh:
+                    stored = json.load(fh)
+                if not summoner_name:
+                    summoner_name = stored.get("summoner_name", "")
+                if not tag_line:
+                    tag_line = stored.get("tag_line", "")
+            except (json.JSONDecodeError, OSError):
+                pass
+
+    if not summoner_name or not tag_line:
+        raise HTTPException(
+            status_code=400,
+            detail="Summoner name and tag line required. Provide in request body or settings.",
+        )
+
+    # Resolve champion_id if champion_key provided
+    conn = _connect(request)
+    champion_id = None
+    try:
+        if champion_key:
+            champ = queries.get_champion_by_key(conn, champion_key)
+            if champ:
+                champion_id = champ["id"]
+
+        # Create Riot client and resolve PUUID
+        from arena_buddy.core.riot_api import RiotAPIClient
+        from arena_buddy.db.aggregate_stats import sync_riot_matches as _sync_fn
+
+        riot = RiotAPIClient(api_key=api_key, region=region)
+
+        # Resolve PUUID
+        puuid = await riot.get_puuid(summoner_name, tag_line)
+        if puuid is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Riot account not found: {summoner_name}#{tag_line}",
+            )
+
+        # Sync matches (runs asyncio.run internally for sync function)
+        import asyncio
+        from concurrent.futures import ThreadPoolExecutor
+
+        # The sync_riot_matches uses asyncio.run which conflicts with the
+        # running event loop. Run it in a thread instead.
+        def _run_sync():
+            import sqlite3 as _sqlite3
+            db_path = request.app.state.db_path
+            local_conn = _sqlite3.connect(str(db_path))
+            local_conn.row_factory = _sqlite3.Row
+            local_conn.execute("PRAGMA foreign_keys = ON")
+            try:
+                result = _sync_fn(local_conn, riot, puuid, champion_id=champion_id, count=count)
+                local_conn.commit()
+                return result
+            finally:
+                local_conn.close()
+
+        loop = asyncio.get_running_loop()
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            result = await loop.run_in_executor(pool, _run_sync)
+
+        return {
+            "status": "ok",
+            **result,
+            "message": f"Synced {result['new_matches']} new matches (fetched {result['total_fetched']} total)",
+        }
+    finally:
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
 # First-Run Wizard
 # ---------------------------------------------------------------------------
 
